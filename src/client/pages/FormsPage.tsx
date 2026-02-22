@@ -22,9 +22,27 @@ interface Props {
   refresh: () => void;
 }
 
+const formLabels: Record<string, string> = {
+  w2: 'W-2',
+  '1099int': '1099-INT',
+  '1099div': '1099-DIV',
+  '1099b': '1099-B',
+  '1099g': '1099-G',
+  '1099r': '1099-R',
+  '1098': '1098',
+  k1: 'Schedule K-1',
+  foreign: 'Foreign Income',
+  hsa: 'HSA',
+  charitable: 'Charitable',
+  estimated: 'Estimated Payments',
+  filing: 'Filing Status',
+};
+
 export default function FormsPage({ data, year, onSave, refresh }: Props) {
   const location = useLocation();
   const isIndex = location.pathname === '/forms' || location.pathname === '/forms/';
+  const formSlug = location.pathname.split('/forms/')[1]?.replace(/\/$/, '');
+  const formLabel = formSlug ? formLabels[formSlug] : undefined;
 
   if (!data) return <p className="text-gray-500">No data loaded.</p>;
 
@@ -32,6 +50,8 @@ export default function FormsPage({ data, year, onSave, refresh }: Props) {
     <div>
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Tax Forms</h1>
+        {formLabel && <span className="text-lg text-gray-400">/</span>}
+        {formLabel && <span className="text-lg text-gray-600">{formLabel}</span>}
         {!isIndex && (
           <Link to="/forms" className="text-blue-600 hover:text-blue-700 text-sm">&larr; All Forms</Link>
         )}
