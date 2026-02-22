@@ -206,6 +206,7 @@ export interface TaxYearData {
   foreignAccounts: ForeignAccountData[];
   educationCredits?: EducationCreditsData;
   estimatedPayments?: EstimatedPaymentsData;
+  checklistChecked?: Record<string, boolean>;
 }
 
 // ─── Year Config (Brackets & Thresholds) ───

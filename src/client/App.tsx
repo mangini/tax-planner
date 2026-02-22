@@ -4,6 +4,7 @@ import AppShell from './components/layout/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import FormsPage from './pages/FormsPage';
 import ForeignAccountsPage from './pages/ForeignAccountsPage';
+import ChecklistPage from './pages/ChecklistPage';
 import ConfigPage from './pages/ConfigPage';
 import * as api from './api';
 import type { TaxYearData, ComputationResult, YearConfig } from '@shared/types';
@@ -147,6 +148,12 @@ export default function App() {
                 onSave={handleSaveData}
                 refresh={refresh}
               />
+            }
+          />
+          <Route
+            path="/checklist"
+            element={
+              <ChecklistPage data={data} onSave={handleSaveData} />
             }
           />
           <Route

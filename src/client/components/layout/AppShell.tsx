@@ -14,6 +14,7 @@ const navItems = [
   { path: '/', label: 'Dashboard' },
   { path: '/forms', label: 'Forms' },
   { path: '/foreign-accounts', label: 'Foreign Accounts' },
+  { path: '/checklist', label: 'Checklist' },
   { path: '/config', label: 'Config' },
 ];
 

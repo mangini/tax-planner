@@ -222,6 +222,7 @@ export const TaxYearDataSchema = z.object({
   foreignAccounts: z.array(ForeignAccountSchema).default([]),
   educationCredits: EducationCreditsSchema.optional(),
   estimatedPayments: EstimatedPaymentsSchema.optional(),
+  checklistChecked: z.record(z.string(), z.boolean()).default({}),
 });
 
 // ─── Year Config schemas ───
