@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EstimatedPaymentsData, TaxAmount } from '@shared/types';
+import type { EstimatedPaymentsData } from '@shared/types';
 import MoneyInput from './MoneyInput';
 import FormEditor from './FormEditor';
 
@@ -17,7 +17,7 @@ export default function EstimatedPaymentsForm({ data, onSave }: Props) {
   const [form, setForm] = useState<EstimatedPaymentsData>(data || defaults);
   const [saving, setSaving] = useState(false);
 
-  const update = (field: keyof EstimatedPaymentsData, value: TaxAmount) =>
+  const update = (field: keyof EstimatedPaymentsData, value: number) =>
     setForm((f) => ({ ...f, [field]: value }));
 
   const handleSave = async () => {
@@ -28,16 +28,16 @@ export default function EstimatedPaymentsForm({ data, onSave }: Props) {
 
   return (
     <FormEditor title="Estimated Tax Payments" onSave={handleSave} saving={saving}>
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-600">Federal Estimated Payments</h3>
-        <div className="grid grid-cols-4 gap-4">
+      <div className="space-y-3">
+        <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">Federal Estimated Payments</h3>
+        <div className="grid grid-cols-4 gap-3">
           <MoneyInput label="Q1" value={form.federalQ1} onChange={(v) => update('federalQ1', v)} />
           <MoneyInput label="Q2" value={form.federalQ2} onChange={(v) => update('federalQ2', v)} />
           <MoneyInput label="Q3" value={form.federalQ3} onChange={(v) => update('federalQ3', v)} />
           <MoneyInput label="Q4" value={form.federalQ4} onChange={(v) => update('federalQ4', v)} />
         </div>
-        <h3 className="text-sm font-medium text-gray-600">State Estimated Payments</h3>
-        <div className="grid grid-cols-4 gap-4">
+        <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide pt-1">State Estimated Payments</h3>
+        <div className="grid grid-cols-4 gap-3">
           <MoneyInput label="Q1" value={form.stateQ1} onChange={(v) => update('stateQ1', v)} />
           <MoneyInput label="Q2" value={form.stateQ2} onChange={(v) => update('stateQ2', v)} />
           <MoneyInput label="Q3" value={form.stateQ3} onChange={(v) => update('stateQ3', v)} />

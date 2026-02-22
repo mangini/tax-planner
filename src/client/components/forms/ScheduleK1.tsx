@@ -38,29 +38,31 @@ export default function ScheduleK1({ data, onSave }: Props) {
     <FormEditor title="Schedule K-1 Partnership Income" onSave={handleSave} saving={saving}>
       {forms.length === 0 && <p className="text-gray-500 text-sm">No K-1 forms.</p>}
       {forms.map((f) => (
-        <div key={f.id} className={`border rounded p-4 mb-4 ${f.isEstimate ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}>
-          <div className="flex justify-between items-center mb-3 gap-2">
+        <div key={f.id} className={`rounded-lg mb-4 overflow-hidden border ${f.isEstimate ? 'border-amber-200 bg-amber-50/20' : 'border-gray-100'}`}>
+          <div className={`flex items-center gap-2 px-4 py-2.5 ${f.isEstimate ? 'bg-amber-50/60' : 'bg-gray-50'}`}>
             <OwnerSelect value={f.owner} onChange={(v) => update(f.id, 'owner', v)} />
             <input type="text" placeholder="Partnership name" value={f.partnershipName}
               onChange={(e) => update(f.id, 'partnershipName', e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm flex-1" />
+              className="border border-gray-200 rounded px-3 py-1 text-sm flex-1 bg-white/80" />
             <input type="text" placeholder="EIN" value={f.ein}
               onChange={(e) => update(f.id, 'ein', e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm w-32" />
+              className="border border-gray-200 rounded px-3 py-1 text-sm w-32 bg-white/80" />
             <EstimateToggle isEstimate={!!f.isEstimate} onChange={(v) => update(f.id, 'isEstimate', v)} />
-            <button onClick={() => remove(f.id)} className="text-red-500 hover:text-red-700 text-sm">Remove</button>
+            <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <MoneyInput label="Box 1: Ordinary Income" value={f.ordinaryIncome} estimated={f.isEstimate} onChange={(v) => update(f.id, 'ordinaryIncome', v)} />
-            <MoneyInput label="Box 2: Rental Income" value={f.rentalIncome} estimated={f.isEstimate} onChange={(v) => update(f.id, 'rentalIncome', v)} />
-            <MoneyInput label="Box 5: Interest Income" value={f.interestIncome} estimated={f.isEstimate} onChange={(v) => update(f.id, 'interestIncome', v)} />
-            <MoneyInput label="Box 6a: Ordinary Dividends" value={f.ordinaryDividends} estimated={f.isEstimate} onChange={(v) => update(f.id, 'ordinaryDividends', v)} />
-            <MoneyInput label="Box 6b: Qualified Dividends" value={f.qualifiedDividends} estimated={f.isEstimate} onChange={(v) => update(f.id, 'qualifiedDividends', v)} />
-            <MoneyInput label="Box 8: Short-Term Cap Gain" value={f.shortTermCapitalGain} estimated={f.isEstimate} onChange={(v) => update(f.id, 'shortTermCapitalGain', v)} />
-            <MoneyInput label="Box 9a: Long-Term Cap Gain" value={f.longTermCapitalGain} estimated={f.isEstimate} onChange={(v) => update(f.id, 'longTermCapitalGain', v)} />
-            <MoneyInput label="Box 17: Sec 199A" value={f.section199A} estimated={f.isEstimate} onChange={(v) => update(f.id, 'section199A', v)} />
-            <MoneyInput label="Box 16: Foreign Tax Paid" value={f.foreignTaxPaid} estimated={f.isEstimate} onChange={(v) => update(f.id, 'foreignTaxPaid', v)} />
-            <MoneyInput label="Box 14: SE Earnings" value={f.selfEmploymentEarnings} estimated={f.isEstimate} onChange={(v) => update(f.id, 'selfEmploymentEarnings', v)} />
+          <div className="px-4 py-3">
+            <div className="grid grid-cols-2 gap-3">
+              <MoneyInput label="Box 1: Ordinary Income" value={f.ordinaryIncome} estimated={f.isEstimate} onChange={(v) => update(f.id, 'ordinaryIncome', v)} />
+              <MoneyInput label="Box 2: Rental Income" value={f.rentalIncome} estimated={f.isEstimate} onChange={(v) => update(f.id, 'rentalIncome', v)} />
+              <MoneyInput label="Box 5: Interest Income" value={f.interestIncome} estimated={f.isEstimate} onChange={(v) => update(f.id, 'interestIncome', v)} />
+              <MoneyInput label="Box 6a: Ordinary Dividends" value={f.ordinaryDividends} estimated={f.isEstimate} onChange={(v) => update(f.id, 'ordinaryDividends', v)} />
+              <MoneyInput label="Box 6b: Qualified Dividends" value={f.qualifiedDividends} estimated={f.isEstimate} onChange={(v) => update(f.id, 'qualifiedDividends', v)} />
+              <MoneyInput label="Box 8: Short-Term Cap Gain" value={f.shortTermCapitalGain} estimated={f.isEstimate} onChange={(v) => update(f.id, 'shortTermCapitalGain', v)} />
+              <MoneyInput label="Box 9a: Long-Term Cap Gain" value={f.longTermCapitalGain} estimated={f.isEstimate} onChange={(v) => update(f.id, 'longTermCapitalGain', v)} />
+              <MoneyInput label="Box 17: Sec 199A" value={f.section199A} estimated={f.isEstimate} onChange={(v) => update(f.id, 'section199A', v)} />
+              <MoneyInput label="Box 16: Foreign Tax Paid" value={f.foreignTaxPaid} estimated={f.isEstimate} onChange={(v) => update(f.id, 'foreignTaxPaid', v)} />
+              <MoneyInput label="Box 14: SE Earnings" value={f.selfEmploymentEarnings} estimated={f.isEstimate} onChange={(v) => update(f.id, 'selfEmploymentEarnings', v)} />
+            </div>
           </div>
         </div>
       ))}

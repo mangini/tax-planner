@@ -14,20 +14,20 @@ export default function MoneyInput({ label, value, onChange, estimated, classNam
 
   return (
     <div className={`${className}`}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-xs text-gray-400 mb-0.5">
         {label}
       </label>
       <div className="relative">
-        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-sm">$</span>
         <input
           type="number"
           step="0.01"
           value={numVal || ''}
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-          className={`w-full border rounded px-2 py-1.5 pl-6 text-sm ${
+          className={`w-full border rounded px-2 py-1 pl-6 text-sm ${
             estimated
-              ? 'border-amber-300 bg-amber-50'
-              : 'border-gray-300 bg-white'
+              ? 'border-amber-200 bg-amber-50/50'
+              : 'border-gray-200 bg-white'
           }`}
         />
       </div>

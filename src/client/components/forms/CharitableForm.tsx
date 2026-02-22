@@ -23,13 +23,15 @@ export default function CharitableForm({ data, onSave }: Props) {
 
   return (
     <FormEditor title="Charitable Contributions" onSave={handleSave} saving={saving}>
-      <div className={`border rounded p-4 ${form.isEstimate ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}>
-        <div className="flex justify-end mb-3">
+      <div className={`rounded-lg overflow-hidden border ${form.isEstimate ? 'border-amber-200 bg-amber-50/20' : 'border-gray-100'}`}>
+        <div className={`flex items-center justify-end px-4 py-2.5 ${form.isEstimate ? 'bg-amber-50/60' : 'bg-gray-50'}`}>
           <EstimateToggle isEstimate={!!form.isEstimate} onChange={(v) => setForm({ ...form, isEstimate: v })} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <MoneyInput label="Cash Donations" value={form.cashDonations} estimated={form.isEstimate} onChange={(v) => setForm({ ...form, cashDonations: v })} />
-          <MoneyInput label="Property Donations" value={form.propertyDonations} estimated={form.isEstimate} onChange={(v) => setForm({ ...form, propertyDonations: v })} />
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-2 gap-3">
+            <MoneyInput label="Cash Donations" value={form.cashDonations} estimated={form.isEstimate} onChange={(v) => setForm({ ...form, cashDonations: v })} />
+            <MoneyInput label="Property Donations" value={form.propertyDonations} estimated={form.isEstimate} onChange={(v) => setForm({ ...form, propertyDonations: v })} />
+          </div>
         </div>
       </div>
     </FormEditor>
