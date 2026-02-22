@@ -9,7 +9,7 @@ interface Props {
 
 export default function FormEditor({ title, onSave, saving, children }: Props) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         <button

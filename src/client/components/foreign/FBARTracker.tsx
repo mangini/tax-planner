@@ -30,7 +30,7 @@ export default function FBARTracker({ data, result, onSave }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {result?.fbar && (
         <div className={`p-4 rounded-lg border-2 ${result.fbar.fbarRequired ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}>
           <div className="flex justify-between items-center">
