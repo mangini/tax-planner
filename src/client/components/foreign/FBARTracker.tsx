@@ -11,7 +11,7 @@ interface Props {
 }
 
 const newAccount = (): ForeignAccountData => ({
-  id: uuid(), owner: 'self', institution: '', country: '', accountType: 'deposit', maxValue: 0, isClosed: false,
+  id: uuid(), owner: 'self', institution: '', country: '', accountType: 'deposit', maxValue: 0, yearEndValue: 0, isClosed: false,
 });
 
 export default function FBARTracker({ data, result, onSave }: Props) {
@@ -37,6 +37,7 @@ export default function FBARTracker({ data, result, onSave }: Props) {
             <div>
               <p className="font-medium text-gray-900">
                 Aggregate Max Balance: {result.fbar.aggregateMaxBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+                {' · '}Year-End: {result.fbar.aggregateYearEndBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
               </p>
               <div className="flex gap-4 mt-2 text-sm">
                 <span className={result.fbar.fbarRequired ? 'text-red-600 font-medium' : 'text-green-600'}>
@@ -73,7 +74,7 @@ export default function FBARTracker({ data, result, onSave }: Props) {
                 className="border border-gray-300 rounded px-3 py-1.5 text-sm flex-1" />
               <button onClick={() => remove(a.id)} className="text-red-500 hover:text-red-700 text-sm">Remove</button>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                 <input type="text" value={a.country} onChange={(e) => update(a.id, 'country', e.target.value)}
@@ -89,6 +90,7 @@ export default function FBARTracker({ data, result, onSave }: Props) {
                 </select>
               </div>
               <MoneyInput label="Max Value" value={a.maxValue} onChange={(v) => update(a.id, 'maxValue', v)} />
+              <MoneyInput label="Year-End Value" value={a.yearEndValue} onChange={(v) => update(a.id, 'yearEndValue', v)} />
             </div>
             <label className="flex items-center gap-2 mt-2 text-sm">
               <input type="checkbox" checked={a.isClosed} onChange={(e) => update(a.id, 'isClosed', e.target.checked)} />

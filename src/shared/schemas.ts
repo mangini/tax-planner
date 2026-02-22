@@ -175,6 +175,7 @@ export const ForeignAccountSchema = z.object({
   country: z.string().default(''),
   accountType: z.enum(['deposit', 'securities', 'other']).default('deposit'),
   maxValue: TaxAmountSchema.default(0),
+  yearEndValue: TaxAmountSchema.default(0),
   isClosed: z.boolean().default(false),
 });
 

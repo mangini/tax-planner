@@ -159,6 +159,7 @@ export interface ForeignAccountData {
   country: string;
   accountType: 'deposit' | 'securities' | 'other';
   maxValue: TaxAmount;
+  yearEndValue: TaxAmount;
   isClosed: boolean;
 }
 
@@ -333,9 +334,10 @@ export interface ColoradoTaxBreakdown {
 
 export interface FBARResult {
   aggregateMaxBalance: number;
+  aggregateYearEndBalance: number;
   fbarRequired: boolean;     // > $10,000
-  form8938Required: boolean; // > $50,000 single / $100,000 MFJ (end of year)
-  accounts: Array<{ institution: string; country: string; maxValue: number }>;
+  form8938Required: boolean; // end-of-year > $50k/$100k MFJ OR any-time > $75k/$150k MFJ
+  accounts: Array<{ institution: string; country: string; maxValue: number; yearEndValue: number }>;
 }
 
 export interface EstimateWarning {

@@ -70,8 +70,8 @@ describe('computeTax integration', () => {
         { description: 'Property charity', amount: 5000, type: 'property' as const },
       ] },
       foreignAccounts: [
-        { id: '1', owner: 'self', institution: 'Banco do Brasil', country: 'Brazil', accountType: 'deposit', maxValue: 25000, isClosed: false },
-        { id: '2', owner: 'self', institution: 'XP Investimentos', country: 'Brazil', accountType: 'securities', maxValue: 80000, isClosed: false },
+        { id: '1', owner: 'self', institution: 'Banco do Brasil', country: 'Brazil', accountType: 'deposit', maxValue: 25000, yearEndValue: 20000, isClosed: false },
+        { id: '2', owner: 'self', institution: 'XP Investimentos', country: 'Brazil', accountType: 'securities', maxValue: 80000, yearEndValue: 70000, isClosed: false },
       ],
       estimatedPayments: {
         federalQ1: 10000, federalQ2: 10000, federalQ3: 10000, federalQ4: 10000,
@@ -119,8 +119,10 @@ describe('computeTax integration', () => {
 
     // FBAR
     expect(result.fbar.aggregateMaxBalance).toBe(105000);
+    expect(result.fbar.aggregateYearEndBalance).toBe(90000);
     expect(result.fbar.fbarRequired).toBe(true);
-    expect(result.fbar.form8938Required).toBe(true);
+    // 8938: year-end $90k < $100k MFJ, but max $105k < $150k MFJ → not required
+    expect(result.fbar.form8938Required).toBe(false);
 
     // Estimate warnings should be empty (all values are final numbers)
     expect(result.estimateWarnings).toHaveLength(0);

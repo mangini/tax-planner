@@ -19,6 +19,10 @@ export default function FBARStatusCard({ fbar }: Props) {
           <span className="text-gray-600">Aggregate Max Balance</span>
           <span className="font-semibold">{fmt(fbar.aggregateMaxBalance)}</span>
         </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Aggregate Year-End Balance</span>
+          <span className="font-semibold">{fmt(fbar.aggregateYearEndBalance)}</span>
+        </div>
         <div className="flex gap-4">
           <StatusBadge
             label="FBAR (FinCEN 114)"
@@ -28,7 +32,7 @@ export default function FBARStatusCard({ fbar }: Props) {
           <StatusBadge
             label="Form 8938 (FATCA)"
             required={fbar.form8938Required}
-            threshold="$100,000 MFJ"
+            threshold="$50k/$100k year-end or $75k/$150k any time"
           />
         </div>
         {fbar.accounts.length > 0 && (
