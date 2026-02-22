@@ -319,7 +319,7 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
   const colorado = computeColoradoTax(taxableIncome, data, config);
 
   // FBAR
-  const fbar = computeFBAR(data);
+  const fbar = computeFBAR(data, config);
 
   // Estimate warnings
   const estimateWarnings = collectEstimates(data);

@@ -286,4 +286,17 @@ export const YearConfigSchema = z.object({
     aotcPhaseoutStart: z.number(),
     aotcPhaseoutEnd: z.number(),
   }),
+  fbar: z.object({
+    fbarThreshold: z.number(),
+    form8938YearEnd: z.number(),
+    form8938YearEndMFJ: z.number(),
+    form8938AnyTime: z.number(),
+    form8938AnyTimeMFJ: z.number(),
+  }).default({
+    fbarThreshold: 10000,
+    form8938YearEnd: 50000,
+    form8938YearEndMFJ: 100000,
+    form8938AnyTime: 75000,
+    form8938AnyTimeMFJ: 150000,
+  }),
 });

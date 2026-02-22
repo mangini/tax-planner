@@ -66,4 +66,11 @@ export const config2025: YearConfig = {
     aotcPhaseoutStart: 160000,
     aotcPhaseoutEnd: 180000,
   },
+  fbar: {
+    fbarThreshold: 10000,
+    form8938YearEnd: 50000,
+    form8938YearEndMFJ: 100000,
+    form8938AnyTime: 75000,
+    form8938AnyTimeMFJ: 150000,
+  },
 };

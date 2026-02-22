@@ -1,13 +1,13 @@
-import type { TaxYearData, FBARResult } from '../../shared/types.js';
+import type { TaxYearData, YearConfig, FBARResult } from '../../shared/types.js';
 import { amountValue } from '../../shared/types.js';
 
 /**
- * FBAR: Required if aggregate max balance > $10,000 at any point during the year.
+ * FBAR: Required if aggregate max balance > fbarThreshold at any point during the year.
  * Form 8938 (FATCA): Required if EITHER threshold is met:
- *   - End of year: aggregate year-end balance > $50,000 single / $100,000 MFJ
- *   - At any time: aggregate max balance > $75,000 single / $150,000 MFJ
+ *   - End of year: aggregate year-end balance > form8938YearEnd / form8938YearEndMFJ
+ *   - At any time: aggregate max balance > form8938AnyTime / form8938AnyTimeMFJ
  */
-export function computeFBAR(data: TaxYearData): FBARResult {
+export function computeFBAR(data: TaxYearData, config: YearConfig): FBARResult {
   const accounts = data.foreignAccounts.map((a) => ({
     institution: a.institution,
     country: a.country,
@@ -19,13 +19,14 @@ export function computeFBAR(data: TaxYearData): FBARResult {
   const aggregateYearEndBalance = accounts.reduce((sum, a) => sum + a.yearEndValue, 0);
 
   const isMFJ = data.filing.status === 'mfj';
-  const yearEndThreshold = isMFJ ? 100000 : 50000;
-  const anyTimeThreshold = isMFJ ? 150000 : 75000;
+  const { fbar } = config;
+  const yearEndThreshold = isMFJ ? fbar.form8938YearEndMFJ : fbar.form8938YearEnd;
+  const anyTimeThreshold = isMFJ ? fbar.form8938AnyTimeMFJ : fbar.form8938AnyTime;
 
   return {
     aggregateMaxBalance,
     aggregateYearEndBalance,
-    fbarRequired: aggregateMaxBalance > 10000,
+    fbarRequired: aggregateMaxBalance > fbar.fbarThreshold,
     form8938Required:
       aggregateYearEndBalance > yearEndThreshold ||
       aggregateMaxBalance > anyTimeThreshold,

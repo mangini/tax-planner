@@ -270,6 +270,13 @@ export interface YearConfig {
     aotcPhaseoutStart: number;
     aotcPhaseoutEnd: number;
   };
+  fbar: {
+    fbarThreshold: number;               // aggregate max balance
+    form8938YearEnd: number;              // single end-of-year threshold
+    form8938YearEndMFJ: number;           // MFJ end-of-year threshold
+    form8938AnyTime: number;              // single any-time threshold
+    form8938AnyTimeMFJ: number;           // MFJ any-time threshold
+  };
 }
 
 // ─── Computation Results ───
