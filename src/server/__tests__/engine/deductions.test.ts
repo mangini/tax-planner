@@ -30,7 +30,7 @@ describe('computeDeductions', () => {
   it('uses itemized when total exceeds standard', () => {
     const data = makeData({
       form1098: [{ id: '1', lender: 'Bank', mortgageInterest: 20000, propertyTax: 12000, pmi: 0 }],
-      charitable: { cashDonations: 10000, propertyDonations: 0 },
+      charitable: { donations: [{ description: 'Charity', amount: 10000, type: 'cash' as const }] },
       w2: [{
         id: '1', owner: 'self', employer: 'Co', wages: 300000, federalWithheld: 50000,
         socialSecurityWages: 176100, socialSecurityWithheld: 10918,

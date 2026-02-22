@@ -141,10 +141,15 @@ export interface HSAData {
   spouseAge: number;
 }
 
+export interface CharitableDonation {
+  description: string;
+  amount: TaxAmount;
+  type: 'cash' | 'property';
+}
+
 export interface CharitableData {
   isEstimate?: boolean;
-  cashDonations: TaxAmount;
-  propertyDonations: TaxAmount;
+  donations: CharitableDonation[];
 }
 
 export interface ForeignAccountData {

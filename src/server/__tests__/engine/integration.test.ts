@@ -65,7 +65,10 @@ describe('computeTax integration', () => {
         selfContribution: 5000, employerContribution: 0,
         coverageType: 'family', selfAge: 40, spouseAge: 38,
       },
-      charitable: { cashDonations: 15000, propertyDonations: 5000 },
+      charitable: { donations: [
+        { description: 'Cash charity', amount: 15000, type: 'cash' as const },
+        { description: 'Property charity', amount: 5000, type: 'property' as const },
+      ] },
       foreignAccounts: [
         { id: '1', owner: 'self', institution: 'Banco do Brasil', country: 'Brazil', accountType: 'deposit', maxValue: 25000, isClosed: false },
         { id: '2', owner: 'self', institution: 'XP Investimentos', country: 'Brazil', accountType: 'securities', maxValue: 80000, isClosed: false },

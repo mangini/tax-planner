@@ -136,11 +136,37 @@ export const HSASchema = z.object({
   spouseAge: z.number().default(30),
 });
 
-export const CharitableSchema = z.object({
-  isEstimate: z.boolean().optional(),
-  cashDonations: TaxAmountSchema.default(0),
-  propertyDonations: TaxAmountSchema.default(0),
+export const CharitableDonationSchema = z.object({
+  description: z.string().default(''),
+  amount: TaxAmountSchema.default(0),
+  type: z.enum(['cash', 'property']).default('cash'),
 });
+
+// New format: { donations: [...] }
+// Old format: { cashDonations, propertyDonations } — transformed on read
+export const CharitableSchema = z
+  .object({
+    isEstimate: z.boolean().optional(),
+    donations: z.array(CharitableDonationSchema).optional(),
+    cashDonations: TaxAmountSchema.optional(),
+    propertyDonations: TaxAmountSchema.optional(),
+  })
+  .transform((val) => {
+    if (val.donations) {
+      return { isEstimate: val.isEstimate, donations: val.donations };
+    }
+    // Migrate old format → new
+    const donations: z.infer<typeof CharitableDonationSchema>[] = [];
+    const cash = val.cashDonations ?? 0;
+    const prop = val.propertyDonations ?? 0;
+    if (typeof cash === 'number' ? cash > 0 : cash.value > 0) {
+      donations.push({ description: 'Cash donations', amount: cash, type: 'cash' as const });
+    }
+    if (typeof prop === 'number' ? prop > 0 : prop.value > 0) {
+      donations.push({ description: 'Property donations', amount: prop, type: 'property' as const });
+    }
+    return { isEstimate: val.isEstimate, donations };
+  });
 
 export const ForeignAccountSchema = z.object({
   id: z.string(),

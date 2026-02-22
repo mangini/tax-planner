@@ -41,8 +41,14 @@ export function computeDeductions(
   const saltCapped = Math.min(saltTotal, effectiveCap);
 
   // Charitable donations with AGI limits
-  const cashDonations = data.charitable ? amountValue(data.charitable.cashDonations) : 0;
-  const propertyDonations = data.charitable ? amountValue(data.charitable.propertyDonations) : 0;
+  let cashDonations = 0;
+  let propertyDonations = 0;
+  if (data.charitable) {
+    for (const d of data.charitable.donations) {
+      if (d.type === 'cash') cashDonations += amountValue(d.amount);
+      else propertyDonations += amountValue(d.amount);
+    }
+  }
   const charitableCash = Math.min(cashDonations, agi * config.charitable.cashAGILimit);
   const charitableProperty = Math.min(propertyDonations, agi * config.charitable.propertyAGILimit);
   const charitableTotal = charitableCash + charitableProperty;

@@ -73,7 +73,9 @@ Helper functions in `types.ts`:
 ### Form Components
 **Array forms** (W2, 1099-*, K-1, 1098): `useState<FormData[]>`, each card has header strip (`bg-gray-50`) with owner/name/EstimateToggle/remove, body with MoneyInput grid.
 
-**Single forms** (HSA, Charitable, ForeignIncome): `useState<FormData>`, card with header strip containing EstimateToggle.
+**Single forms** (HSA, ForeignIncome): `useState<FormData>`, card with header strip containing EstimateToggle.
+
+**Charitable**: Itemized donation list. `CharitableData` has `donations: CharitableDonation[]` where each donation has `description`, `amount`, and `type` ('cash'|'property'). Engine sums by type for AGI limit calculations. Schema has `.transform()` for backward compat with old `{ cashDonations, propertyDonations }` format.
 
 **MoneyInput**: Accepts `TaxAmount | undefined` for reading (backward compat), emits `number`. Has `estimated?: boolean` prop for amber styling. Labels are dimmed (`text-xs text-gray-400`).
 
