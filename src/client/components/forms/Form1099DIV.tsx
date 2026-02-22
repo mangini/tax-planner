@@ -40,10 +40,10 @@ export default function Form1099DIV({ data, onSave }: Props) {
             <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
           </div>
           <div className="px-4 py-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <MoneyInput label="1a: Ordinary Dividends" value={f.ordinaryDividends} estimated={f.isEstimate} onChange={(v) => update(f.id, 'ordinaryDividends', v)} />
               <MoneyInput label="1b: Qualified Dividends" value={f.qualifiedDividends} estimated={f.isEstimate} onChange={(v) => update(f.id, 'qualifiedDividends', v)} />
-              <MoneyInput label="2a: Cap Gain Distributions" value={f.capitalGainDistributions} estimated={f.isEstimate} onChange={(v) => update(f.id, 'capitalGainDistributions', v)} />
+              <MoneyInput label="2a: Cap Gain Dist." value={f.capitalGainDistributions} estimated={f.isEstimate} onChange={(v) => update(f.id, 'capitalGainDistributions', v)} />
               <MoneyInput label="7: Foreign Tax Paid" value={f.foreignTaxPaid} estimated={f.isEstimate} onChange={(v) => update(f.id, 'foreignTaxPaid', v)} />
             </div>
             {f.country !== undefined && (

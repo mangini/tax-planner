@@ -43,16 +43,12 @@ export default function Form1099B({ data, onSave }: Props) {
             <EstimateToggle isEstimate={!!f.isEstimate} onChange={(v) => update(f.id, 'isEstimate', v)} />
             <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
           </div>
-          <div className="px-4 py-3 space-y-2">
-            <h4 className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Short-Term</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <MoneyInput label="Proceeds" value={f.shortTermProceeds} estimated={f.isEstimate} onChange={(v) => update(f.id, 'shortTermProceeds', v)} />
-              <MoneyInput label="Cost Basis" value={f.shortTermBasis} estimated={f.isEstimate} onChange={(v) => update(f.id, 'shortTermBasis', v)} />
-            </div>
-            <h4 className="text-[10px] font-medium text-gray-400 uppercase tracking-wide pt-1">Long-Term</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <MoneyInput label="Proceeds" value={f.longTermProceeds} estimated={f.isEstimate} onChange={(v) => update(f.id, 'longTermProceeds', v)} />
-              <MoneyInput label="Cost Basis" value={f.longTermBasis} estimated={f.isEstimate} onChange={(v) => update(f.id, 'longTermBasis', v)} />
+          <div className="px-4 py-3">
+            <div className="grid grid-cols-4 gap-3">
+              <MoneyInput label="ST Proceeds" value={f.shortTermProceeds} estimated={f.isEstimate} onChange={(v) => update(f.id, 'shortTermProceeds', v)} />
+              <MoneyInput label="ST Cost Basis" value={f.shortTermBasis} estimated={f.isEstimate} onChange={(v) => update(f.id, 'shortTermBasis', v)} />
+              <MoneyInput label="LT Proceeds" value={f.longTermProceeds} estimated={f.isEstimate} onChange={(v) => update(f.id, 'longTermProceeds', v)} />
+              <MoneyInput label="LT Cost Basis" value={f.longTermBasis} estimated={f.isEstimate} onChange={(v) => update(f.id, 'longTermBasis', v)} />
             </div>
           </div>
         </div>

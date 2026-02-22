@@ -40,7 +40,7 @@ export default function Form1099R({ data, onSave }: Props) {
             <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
           </div>
           <div className="px-4 py-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <MoneyInput label="1: Gross Distribution" value={f.grossDistribution} estimated={f.isEstimate} onChange={(v) => update(f.id, 'grossDistribution', v)} />
               <MoneyInput label="2a: Taxable Amount" value={f.taxableAmount} estimated={f.isEstimate} onChange={(v) => update(f.id, 'taxableAmount', v)} />
               <MoneyInput label="4: Federal Withheld" value={f.federalWithheld} estimated={f.isEstimate} onChange={(v) => update(f.id, 'federalWithheld', v)} />

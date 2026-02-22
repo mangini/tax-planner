@@ -35,8 +35,8 @@ export default function ForeignIncomeForm({ rentalData, bankData, onSave }: Prop
           <div className="px-4 py-3 space-y-2">
             <input type="text" placeholder="Country" value={rental.country}
               onChange={(e) => setRental({ ...rental, country: e.target.value })}
-              className="border border-gray-200 rounded px-3 py-1 text-sm w-full" />
-            <div className="grid grid-cols-2 gap-3">
+              className="border border-gray-200 rounded px-3 py-1 text-sm w-48" />
+            <div className="grid grid-cols-4 gap-3">
               <MoneyInput label="Gross Income" value={rental.grossIncome} estimated={rental.isEstimate} onChange={(v) => setRental({ ...rental, grossIncome: v })} />
               <MoneyInput label="Expenses" value={rental.expenses} estimated={rental.isEstimate} onChange={(v) => setRental({ ...rental, expenses: v })} />
               <MoneyInput label="Net Income" value={rental.netIncome} estimated={rental.isEstimate} onChange={(v) => setRental({ ...rental, netIncome: v })} />
@@ -53,8 +53,8 @@ export default function ForeignIncomeForm({ rentalData, bankData, onSave }: Prop
           <div className="px-4 py-3 space-y-2">
             <input type="text" placeholder="Country" value={bank.country}
               onChange={(e) => setBank({ ...bank, country: e.target.value })}
-              className="border border-gray-200 rounded px-3 py-1 text-sm w-full" />
-            <div className="grid grid-cols-2 gap-3">
+              className="border border-gray-200 rounded px-3 py-1 text-sm w-48" />
+            <div className="grid grid-cols-4 gap-3">
               <MoneyInput label="Interest Income" value={bank.interestIncome} estimated={bank.isEstimate} onChange={(v) => setBank({ ...bank, interestIncome: v })} />
               <MoneyInput label="Dividend Income" value={bank.dividendIncome} estimated={bank.isEstimate} onChange={(v) => setBank({ ...bank, dividendIncome: v })} />
               <MoneyInput label="Capital Gains" value={bank.capitalGains} estimated={bank.isEstimate} onChange={(v) => setBank({ ...bank, capitalGains: v })} />

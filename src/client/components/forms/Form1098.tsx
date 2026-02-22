@@ -40,7 +40,7 @@ export default function Form1098({ data, onSave }: Props) {
             <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
           </div>
           <div className="px-4 py-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <MoneyInput label="1: Mortgage Interest" value={f.mortgageInterest} estimated={f.isEstimate} onChange={(v) => update(f.id, 'mortgageInterest', v)} />
               <MoneyInput label="Property Tax" value={f.propertyTax} estimated={f.isEstimate} onChange={(v) => update(f.id, 'propertyTax', v)} />
               <MoneyInput label="5: PMI" value={f.pmi} estimated={f.isEstimate} onChange={(v) => update(f.id, 'pmi', v)} />

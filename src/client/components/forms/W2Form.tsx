@@ -65,23 +65,17 @@ export default function W2Form({ data, onSave }: Props) {
                 setForms(forms.map((form) => form.id === f.id ? { ...form, ...values } : form));
               }} />
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <MoneyInput label="Box 1: Wages" value={f.wages} estimated={f.isEstimate} onChange={(v) => update(f.id, 'wages', v)} />
               <MoneyInput label="Box 2: Federal Withheld" value={f.federalWithheld} estimated={f.isEstimate} onChange={(v) => update(f.id, 'federalWithheld', v)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+              <MoneyInput label="Box 12W: HSA Employer" value={f.hsaEmployerContribution} estimated={f.isEstimate} onChange={(v) => update(f.id, 'hsaEmployerContribution', v)} />
               <MoneyInput label="Box 3: SS Wages" value={f.socialSecurityWages} estimated={f.isEstimate} onChange={(v) => update(f.id, 'socialSecurityWages', v)} />
               <MoneyInput label="Box 4: SS Withheld" value={f.socialSecurityWithheld} estimated={f.isEstimate} onChange={(v) => update(f.id, 'socialSecurityWithheld', v)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <MoneyInput label="Box 5: Medicare Wages" value={f.medicareWages} estimated={f.isEstimate} onChange={(v) => update(f.id, 'medicareWages', v)} />
               <MoneyInput label="Box 6: Medicare Withheld" value={f.medicareWithheld} estimated={f.isEstimate} onChange={(v) => update(f.id, 'medicareWithheld', v)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <MoneyInput label="Box 16: State Wages" value={f.stateWages} estimated={f.isEstimate} onChange={(v) => update(f.id, 'stateWages', v)} />
               <MoneyInput label="Box 17: State Withheld" value={f.stateWithheld} estimated={f.isEstimate} onChange={(v) => update(f.id, 'stateWithheld', v)} />
             </div>
-            <MoneyInput label="Box 12 Code W: HSA Employer Contribution" value={f.hsaEmployerContribution} estimated={f.isEstimate} onChange={(v) => update(f.id, 'hsaEmployerContribution', v)} />
           </div>
         </div>
       ))}

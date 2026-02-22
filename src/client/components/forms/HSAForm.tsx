@@ -27,12 +27,10 @@ export default function HSAForm({ data, onSave }: Props) {
         <div className={`flex items-center justify-end px-4 py-2.5 ${form.isEstimate ? 'bg-amber-50/60' : 'bg-gray-50'}`}>
           <EstimateToggle isEstimate={!!form.isEstimate} onChange={(v) => setForm({ ...form, isEstimate: v })} />
         </div>
-        <div className="px-4 py-3 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-5 gap-3">
             <MoneyInput label="Your Contribution" value={form.selfContribution} estimated={form.isEstimate} onChange={(v) => setForm({ ...form, selfContribution: v })} />
             <MoneyInput label="Employer Contribution" value={form.employerContribution} estimated={form.isEstimate} onChange={(v) => setForm({ ...form, employerContribution: v })} />
-          </div>
-          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-0.5">Coverage</label>
               <select value={form.coverageType} onChange={(e) => setForm({ ...form, coverageType: e.target.value as 'self-only' | 'family' })}
