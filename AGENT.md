@@ -15,6 +15,10 @@ src/
     types.ts        All interfaces: form data, computation results, TaxAmount
     schemas.ts      Zod schemas matching each type (validation + defaults)
     tax-config-{2025,2026,2027}.ts   Year-specific brackets/thresholds (MFJ only)
+    pay-periods.ts  Pay frequency helpers (periods completed / ended before a date)
+    ytd-projection.ts  W-2 projection from payslip YTD (salary vs RSU vests, supplemental withholding)
+    morgan-stanley.ts  Parser for Morgan Stanley "Employee Grant Details" HTML (string-based, no DOM)
+    rsu.ts          Vest valuation by year/owner using assumed prices
     tax-configs.ts  defaultConfigForYear() — picks the config for a year (nearest year as fallback)
   server/           Express API (runs with tsx)
     index.ts        Express app, routes, port 3456
@@ -33,6 +37,7 @@ src/
       colorado.ts         Colorado flat rate
       fbar.ts             FBAR/Form 8938 thresholds
       social-security.ts  SS tax computation
+      estimated-tax.ts    Quarterly safe-harbor check, catch-up plan, penalty estimate (federal + CO)
     __tests__/engine/   Unit + integration tests (vitest)
   client/           React SPA (Vite + Tailwind)
     main.tsx        Entry point

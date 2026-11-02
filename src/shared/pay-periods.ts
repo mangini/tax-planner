@@ -52,3 +52,42 @@ export function payPeriodsCompleted(periodEnd: string, frequency: PayFrequency):
       return p.month + 1;
   }
 }
+
+/**
+ * Number of pay periods in the year that ended strictly before `date` (any calendar day).
+ * Weekly/biweekly need `anchorEnd`, a known period end date in the same year
+ * (e.g. the payslip date used in the YTD estimator); without it the count is approximate.
+ */
+export function payPeriodsEndedBefore(
+  date: string,
+  frequency: PayFrequency,
+  anchorEnd?: string
+): number | null {
+  const p = parseDate(date);
+  if (!p) return null;
+  const total = periodsPerYear(frequency);
+  const clamp = (n: number) => Math.max(0, Math.min(total, n));
+
+  switch (frequency) {
+    case 'semimonthly':
+      return clamp(p.month * 2 + (p.day > 15 ? 1 : 0));
+    case 'monthly':
+      return clamp(p.month);
+    case 'weekly':
+    case 'biweekly': {
+      const len = frequency === 'weekly' ? 7 : 14;
+      const dayMs = 86_400_000;
+      const t = Date.UTC(p.year, p.month, p.day);
+      const a = anchorEnd ? parseDate(anchorEnd) : null;
+      if (!a || a.year !== p.year) {
+        const dayOfYear = (t - Date.UTC(p.year, 0, 1)) / dayMs + 1;
+        return clamp(Math.floor((dayOfYear - 1) / len));
+      }
+      const anchorCount = payPeriodsCompleted(anchorEnd!, frequency)!;
+      const diffDays = (t - Date.UTC(a.year, a.month, a.day)) / dayMs;
+      // Period ends are anchor + k·len; count those strictly before date
+      const k = diffDays > 0 ? Math.ceil(diffDays / len) - 1 : -Math.floor(-diffDays / len) - 1;
+      return clamp(anchorCount + k);
+    }
+  }
+}

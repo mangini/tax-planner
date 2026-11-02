@@ -66,6 +66,9 @@ function cloneDataAsEstimates(source: TaxYearData, newYear: number): TaxYearData
     foreignAccounts: source.foreignAccounts.map(cloneForeignAccount),
     // Estimated payments reset to zero — they're year-specific
     estimatedPayments: undefined,
+    // RSU grants span years; prices are carried as a starting assumption
+    rsuGrants: (source.rsuGrants ?? []).map((g) => ({ ...g, vests: g.vests.map((v) => ({ ...v })) })),
+    rsuPrices: { ...(source.rsuPrices ?? {}) },
   };
 }
 

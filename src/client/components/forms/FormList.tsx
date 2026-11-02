@@ -26,6 +26,7 @@ const forms: FormInfo[] = [
   { key: 'foreign', label: 'Foreign Income', subtitle: 'Rental and Bank Income', path: 'foreign', hasData: (d) => !!d.foreignRentalIncome || !!d.foreignBankIncome, hasEstimate: (d) => !!d.foreignRentalIncome?.isEstimate || !!d.foreignBankIncome?.isEstimate },
   { key: 'hsa', label: 'HSA', subtitle: 'Health Savings Account', path: 'hsa', hasData: (d) => !!d.hsa, hasEstimate: (d) => !!d.hsa?.isEstimate },
   { key: 'charitable', label: 'Charitable', subtitle: 'Donations and Contributions', path: 'charitable', hasData: (d) => !!d.charitable, hasEstimate: (d) => !!d.charitable?.isEstimate },
+  { key: 'rsu', label: 'RSU Grants', subtitle: 'Vesting Schedules', path: 'rsu', hasData: (d) => (d.rsuGrants?.length ?? 0) > 0, hasEstimate: () => false },
   { key: 'estimated', label: 'Estimated Payments', subtitle: 'Quarterly Tax Payments', path: 'estimated', hasData: (d) => !!d.estimatedPayments, hasEstimate: () => false },
   { key: 'filing', label: 'Filing Status', subtitle: 'Status and Dependents', path: 'filing', hasData: () => true, hasEstimate: () => false },
 ];

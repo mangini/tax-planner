@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { v4 as uuid } from 'uuid';
-import type { W2Data, TaxAmount, FormOwner, YearConfig } from '@shared/types';
+import type { W2Data, TaxAmount, FormOwner, YearConfig, RSUGrant } from '@shared/types';
 import MoneyInput from './MoneyInput';
 import OwnerSelect from './OwnerSelect';
 import EstimateToggle from './EstimateToggle';
@@ -9,6 +9,9 @@ import YTDEstimator from './YTDEstimator';
 
 interface Props {
   data: W2Data[];
+  year: number;
+  grants: RSUGrant[];
+  prices: Record<string, number>;
   config: YearConfig;
   onSave: (data: { w2: W2Data[] }) => Promise<void>;
 }
@@ -28,7 +31,7 @@ const newW2 = (): W2Data => ({
   hsaEmployerContribution: 0,
 });
 
-export default function W2Form({ data, config, onSave }: Props) {
+export default function W2Form({ data, year, grants, prices, config, onSave }: Props) {
   const [forms, setForms] = useState<W2Data[]>(data.length > 0 ? data : []);
   const [saving, setSaving] = useState(false);
 
@@ -62,9 +65,20 @@ export default function W2Form({ data, config, onSave }: Props) {
           </div>
           <div className="px-4 py-3 space-y-2">
             {f.isEstimate && (
-              <YTDEstimator config={config} onApply={(values) => {
-                setForms(forms.map((form) => form.id === f.id ? { ...form, ...values } : form));
-              }} />
+              <YTDEstimator
+                config={config}
+                year={year}
+                owner={f.owner}
+                grants={grants}
+                prices={prices}
+                saved={f.ytdEstimator}
+                onInputsChange={(inputs) =>
+                  setForms((fs) => fs.map((form) => (form.id === f.id ? { ...form, ytdEstimator: inputs } : form)))
+                }
+                onApply={(values) =>
+                  setForms((fs) => fs.map((form) => (form.id === f.id ? { ...form, ...values } : form)))
+                }
+              />
             )}
             <div className="grid grid-cols-3 gap-3">
               <MoneyInput label="Box 1: Wages" value={f.wages} estimated={f.isEstimate} onChange={(v) => update(f.id, 'wages', v)} />

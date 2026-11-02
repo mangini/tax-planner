@@ -77,6 +77,26 @@ export const config2025: YearConfig = {
     aotcPhaseoutStart: 160000, // statutory, not indexed
     aotcPhaseoutEnd: 180000,
   },
+  estimatedTax: {
+    // Federal: 90% current year or 100%/110% prior year (IRC §6654)
+    federal: {
+      currentYearPct: 0.90,
+      priorYearPct: 1.00,
+      priorYearHighIncomePct: 1.10,
+      highIncomeAgi: 150000,
+      minimumBalanceDue: 1000,
+      penaltyRate: 0.07, // IRS underpayment rate (7% through Q4 2026; reset quarterly)
+    },
+    // Colorado: 70% current year or 100%/110% prior year (DR 0104EP / DR 0204)
+    colorado: {
+      currentYearPct: 0.70,
+      priorYearPct: 1.00,
+      priorYearHighIncomePct: 1.10,
+      highIncomeAgi: 150000,
+      minimumBalanceDue: 1000,
+      penaltyRate: 0.11, // approximate — verify against DR 0204 for the year
+    },
+  },
   fbar: {
     fbarThreshold: 10000,
     form8938YearEnd: 50000,

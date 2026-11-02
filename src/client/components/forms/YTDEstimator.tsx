@@ -1,31 +1,38 @@
 import { useState } from 'react';
-import type { YearConfig } from '@shared/types';
+import type {
+  YearConfig,
+  RSUGrant,
+  FormOwner,
+  W2YTDProjectionInfo,
+  YTDEstimatorInputs,
+  YTDEstimatorVest,
+} from '@shared/types';
+import { vestsInYear } from '@shared/rsu';
 import { PAY_FREQUENCIES, payPeriodsCompleted, periodsPerYear, type PayFrequency } from '@shared/pay-periods';
 import { projectYTD, type YTDProjection } from '@shared/ytd-projection';
 
-interface YTDInputs {
-  payPeriodEnd: string; // YYYY-MM-DD, from the payslip
-  payFrequency: PayFrequency;
-  ytdGrossPay: number;
-  ytdSalary: number;
-  ytdPreTaxDeductions: number;
-  ytdFederalTax: number;
-  ytdStateTax: number;
-  ytdOasdi: number;
-  ytdMedicare: number;
-  ytdHsa: number;
-  remainingRsuVests: number;
-  supplementalFederalRate: number;
-}
-
-type NumericField = Exclude<keyof YTDInputs, 'payPeriodEnd' | 'payFrequency'>;
+type NumericField =
+  | 'ytdGrossPay' | 'ytdSalary' | 'ytdPreTaxDeductions' | 'ytdFederalTax'
+  | 'ytdStateTax' | 'ytdOasdi' | 'ytdMedicare' | 'ytdHsa';
 
 interface Props {
   config: YearConfig;
-  onApply: (values: YTDProjection) => void;
+  year: number;
+  owner: FormOwner;
+  grants: RSUGrant[];
+  prices: Record<string, number>;
+  /** Saved inputs from the W-2, if any */
+  saved: YTDEstimatorInputs | undefined;
+  /** Called on every change so the W-2 form can persist the inputs on Save */
+  onInputsChange: (inputs: YTDEstimatorInputs) => void;
+  onApply: (values: YTDProjection & { ytdProjection: W2YTDProjectionInfo }) => void;
 }
 
-const defaultInputs: YTDInputs = {
+/** Supplemental withholding rates employees can typically elect for RSUs */
+const MIN_SUPPLEMENTAL_RATE = 0.22;
+const MAX_SUPPLEMENTAL_RATE = 0.37;
+
+export const defaultEstimatorInputs: YTDEstimatorInputs = {
   payPeriodEnd: '',
   payFrequency: 'semimonthly',
   ytdGrossPay: 0,
@@ -36,17 +43,56 @@ const defaultInputs: YTDInputs = {
   ytdOasdi: 0,
   ytdMedicare: 0,
   ytdHsa: 0,
-  remainingRsuVests: 0,
-  supplementalFederalRate: 0.22,
+  supplementalFederalRate: MIN_SUPPLEMENTAL_RATE,
+  rsuVests: [],
+  rsuFromGrants: true,
 };
 
 function fmt(n: number): string {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 }
 
-export default function YTDEstimator({ config, onApply }: Props) {
-  const [open, setOpen] = useState(false);
-  const [inputs, setInputs] = useState<YTDInputs>(defaultInputs);
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export default function YTDEstimator({ config, year, owner, grants, prices, saved, onInputsChange, onApply }: Props) {
+  const [open, setOpen] = useState(!!saved);
+  const [inputs, setInputsState] = useState<YTDEstimatorInputs>({ ...defaultEstimatorInputs, ...saved });
+  // Raw text of the rate field, so typing "2" on the way to "23" isn't rejected
+  const [rateText, setRateText] = useState(String(Math.round(inputs.supplementalFederalRate * 1000) / 10));
+
+  const setInputs = (next: YTDEstimatorInputs) => {
+    setInputsState(next);
+    onInputsChange(next);
+  };
+
+  // Vests after the payslip date (or today, before a date is entered), from RSU Grants
+  const after = inputs.payPeriodEnd || localToday();
+  const fromGrants: YTDEstimatorVest[] = vestsInYear(grants, prices, year, { owner, after }).map((v) => ({
+    date: v.date,
+    shares: v.shares,
+    price: v.price ?? 0,
+  }));
+  const vests = inputs.rsuFromGrants ? fromGrants : inputs.rsuVests;
+  const remainingRsuVests = Math.round(vests.reduce((s, v) => s + v.shares * v.price, 0) * 100) / 100;
+  const unpriced = vests.some((v) => v.shares > 0 && !v.price);
+
+  // Editing a row switches to a saved, manual copy of the list
+  const editVests = (update: (rows: YTDEstimatorVest[]) => YTDEstimatorVest[]) =>
+    setInputs({ ...inputs, rsuFromGrants: false, rsuVests: update(vests.map((v) => ({ ...v }))) });
+
+  const ratePct = parseFloat(rateText);
+  const rateValid =
+    Number.isFinite(ratePct) && ratePct >= MIN_SUPPLEMENTAL_RATE * 100 && ratePct <= MAX_SUPPLEMENTAL_RATE * 100;
+  const onRateChange = (text: string) => {
+    setRateText(text);
+    const pct = parseFloat(text);
+    if (Number.isFinite(pct) && pct >= MIN_SUPPLEMENTAL_RATE * 100 && pct <= MAX_SUPPLEMENTAL_RATE * 100) {
+      setInputs({ ...inputs, supplementalFederalRate: pct / 100 });
+    }
+  };
 
   const completed = payPeriodsCompleted(inputs.payPeriodEnd, inputs.payFrequency);
   const total = periodsPerYear(inputs.payFrequency);
@@ -66,7 +112,7 @@ export default function YTDEstimator({ config, onApply }: Props) {
           ytdOasdi: inputs.ytdOasdi,
           ytdMedicare: inputs.ytdMedicare,
           ytdHsaEmployer: inputs.ytdHsa,
-          remainingRsuVests: inputs.remainingRsuVests,
+          remainingRsuVests,
           supplementalFederalRate: inputs.supplementalFederalRate,
           supplementalStateRate: config.colorado.flatRate,
           ssWageBase: config.socialSecurity.wageBase,
@@ -75,11 +121,10 @@ export default function YTDEstimator({ config, onApply }: Props) {
         })
       : null;
 
-  const set = (field: NumericField, value: string) => {
-    setInputs({ ...inputs, [field]: parseFloat(value) || 0 });
-  };
+  const set = (field: NumericField, value: string) => setInputs({ ...inputs, [field]: parseFloat(value) || 0 });
 
   const inputClass = "border border-gray-300 rounded px-2 py-1.5 text-sm w-full";
+  const cellClass = "border border-gray-200 rounded px-1.5 py-0.5 text-xs w-full text-right tabular-nums";
 
   const money = (field: NumericField, label: string, hint?: string) => (
     <div>
@@ -96,7 +141,10 @@ export default function YTDEstimator({ config, onApply }: Props) {
         onClick={() => setOpen(!open)}
         className="w-full px-4 py-2 text-left text-sm font-medium text-amber-800 hover:bg-amber-100/50 flex justify-between items-center"
       >
-        YTD Estimator
+        <span>
+          YTD Estimator
+          {saved?.payPeriodEnd && <span className="ml-2 text-xs font-normal text-amber-600">payslip {saved.payPeriodEnd}</span>}
+        </span>
         <span className="text-xs">{open ? '▲' : '▼'}</span>
       </button>
 
@@ -104,7 +152,7 @@ export default function YTDEstimator({ config, onApply }: Props) {
         <div className="px-4 pb-4 space-y-4">
           <p className="text-xs text-amber-700">
             Enter YTD values from your latest payslip. Salary is extrapolated across the remaining
-            pay periods; RSU vests and bonuses already paid are kept as-is.
+            pay periods; RSU vests and bonuses already paid are kept as-is. Inputs are saved with the W-2.
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -144,21 +192,104 @@ export default function YTDEstimator({ config, onApply }: Props) {
             </p>
           )}
 
-          <div className="border border-gray-200 rounded bg-white p-3 space-y-3">
-            <h4 className="text-xs font-semibold text-gray-700">Upcoming RSU Vests</h4>
-            <div className="grid grid-cols-2 gap-3">
-              {money('remainingRsuVests', 'Remaining vests this year ($)', 'Shares × est. price; exclude vests already on payslips')}
+          {/* Upcoming RSU vests */}
+          <div className="border border-gray-200 rounded bg-white p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-gray-700">
+                Upcoming RSU Vests <span className="font-normal text-gray-400">after {after}</span>
+              </h4>
+              <span className="text-[11px] text-gray-500">
+                {inputs.rsuFromGrants ? 'From RSU Grants' : 'Edited'}
+                {!inputs.rsuFromGrants && (
+                  <button type="button" onClick={() => setInputs({ ...inputs, rsuFromGrants: true, rsuVests: [] })} className="ml-2 text-blue-600">
+                    Reset from RSU Grants
+                  </button>
+                )}
+              </span>
+            </div>
+
+            {vests.length === 0 ? (
+              <p className="text-[11px] text-gray-400">
+                {grants.some((g) => g.owner === owner)
+                  ? `No ${owner} vests left in ${year} after ${after}.`
+                  : `No RSU grants for ${owner}. Import them on the RSU Grants form, or add a vest here.`}
+              </p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-400">
+                    <th className="text-left font-normal">Date</th>
+                    <th className="text-right font-normal">Shares</th>
+                    <th className="text-right font-normal">Price</th>
+                    <th className="text-right font-normal">Value</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {vests.map((v, i) => (
+                    <tr key={i}>
+                      <td className="pr-2 py-0.5">
+                        <input type="date" value={v.date}
+                          onChange={(e) => editVests((rows) => rows.map((r, j) => (j === i ? { ...r, date: e.target.value } : r)))}
+                          className="border border-gray-200 rounded px-1.5 py-0.5 text-xs" />
+                      </td>
+                      <td className="px-1 w-24">
+                        <input type="number" min={0} value={v.shares || ''}
+                          onChange={(e) => editVests((rows) => rows.map((r, j) => (j === i ? { ...r, shares: parseFloat(e.target.value) || 0 } : r)))}
+                          className={cellClass} />
+                      </td>
+                      <td className="px-1 w-24">
+                        <input type="number" min={0} step="0.01" value={v.price || ''}
+                          onChange={(e) => editVests((rows) => rows.map((r, j) => (j === i ? { ...r, price: parseFloat(e.target.value) || 0 } : r)))}
+                          className={cellClass} />
+                      </td>
+                      <td className="px-1 text-right tabular-nums w-24">{fmt(v.shares * v.price)}</td>
+                      <td className="pl-1 w-4">
+                        <button type="button" aria-label="Remove vest"
+                          onClick={() => editVests((rows) => rows.filter((_, j) => j !== i))}
+                          className="text-gray-300 hover:text-red-500">×</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-gray-100 font-medium">
+                    <td colSpan={3} className="pt-1">Total remaining vests</td>
+                    <td className="pt-1 text-right tabular-nums">{fmt(remainingRsuVests)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+            <div className="flex items-center justify-between">
+              <button type="button" className="text-[11px] text-blue-600"
+                onClick={() => editVests((rows) => [...rows, { date: after, shares: 0, price: vests[0]?.price ?? 0 }])}>
+                + Add vest
+              </button>
+              {unpriced && <span className="text-[11px] text-amber-700">Some vests have no price — set one here or on RSU Grants.</span>}
+            </div>
+            <p className="text-[11px] text-gray-400">
+              Only vests after the payslip date; earlier ones are already in YTD gross. Edits here don't change RSU Grants.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Federal withholding on vests</label>
-                <select
-                  value={inputs.supplementalFederalRate}
-                  onChange={(e) => setInputs({ ...inputs, supplementalFederalRate: parseFloat(e.target.value) })}
-                  className={inputClass}
-                >
-                  <option value={0.22}>22% (default supplemental)</option>
-                  <option value={0.37}>37% (elected)</option>
-                </select>
-                <p className="text-[11px] text-gray-400 mt-0.5">37% always applies above $1M of supplemental pay</p>
+                <div className="relative">
+                  <input
+                    type="number" step="0.1" min={MIN_SUPPLEMENTAL_RATE * 100} max={MAX_SUPPLEMENTAL_RATE * 100}
+                    value={rateText}
+                    onChange={(e) => onRateChange(e.target.value)}
+                    onBlur={() => { if (!rateValid) setRateText(String(Math.round(inputs.supplementalFederalRate * 1000) / 10)); }}
+                    className={`${inputClass} pr-6 ${rateValid ? '' : 'border-red-400'}`}
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                </div>
+                <p className={`text-[11px] mt-0.5 ${rateValid ? 'text-gray-400' : 'text-red-600'}`}>
+                  {rateValid
+                    ? 'Rate elected with your broker (22–37%). 37% always applies above $1M of supplemental pay.'
+                    : 'Enter a rate between 22% and 37%.'}
+                </p>
               </div>
             </div>
           </div>
@@ -179,11 +310,15 @@ export default function YTDEstimator({ config, onApply }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => onApply(projected)}
+                onClick={() => onApply({
+                  ...projected,
+                  ytdProjection: { asOf: inputs.payPeriodEnd, payFrequency: inputs.payFrequency, remainingRsuVests },
+                })}
                 className="mt-3 w-full px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded hover:bg-amber-700"
               >
                 Apply to W-2
               </button>
+              <p className="text-[11px] text-gray-400 mt-1 text-center">Then click Save to keep the values and inputs.</p>
             </div>
           )}
         </div>

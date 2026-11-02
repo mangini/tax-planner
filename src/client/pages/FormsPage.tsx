@@ -15,6 +15,7 @@ import HSAForm from '../components/forms/HSAForm';
 import CharitableForm from '../components/forms/CharitableForm';
 import EstimatedPaymentsForm from '../components/forms/EstimatedPaymentsForm';
 import FilingForm from '../components/forms/FilingForm';
+import RSUGrantsForm from '../components/forms/RSUGrantsForm';
 
 interface Props {
   data: TaxYearData | null;
@@ -37,6 +38,7 @@ const formLabels: Record<string, string> = {
   hsa: 'HSA',
   charitable: 'Charitable',
   estimated: 'Estimated Payments',
+  rsu: 'RSU Grants',
   filing: 'Filing Status',
 };
 
@@ -60,7 +62,7 @@ export default function FormsPage({ data, year, config, onSave, refresh }: Props
       </div>
       <Routes>
         <Route index element={<FormList data={data} />} />
-        <Route path="w2" element={<W2Form data={data.w2} config={config ?? defaultConfigForYear(year)} onSave={onSave} />} />
+        <Route path="w2" element={<W2Form data={data.w2} year={year} grants={data.rsuGrants ?? []} prices={data.rsuPrices ?? {}} config={config ?? defaultConfigForYear(year)} onSave={onSave} />} />
         <Route path="1099int" element={<Form1099INT data={data.form1099INT} onSave={onSave} />} />
         <Route path="1099div" element={<Form1099DIV data={data.form1099DIV} onSave={onSave} />} />
         <Route path="1099b" element={<Form1099B data={data.form1099B} onSave={onSave} />} />
@@ -71,7 +73,8 @@ export default function FormsPage({ data, year, config, onSave, refresh }: Props
         <Route path="foreign" element={<ForeignIncomeForm rentalData={data.foreignRentalIncome} bankData={data.foreignBankIncome} onSave={onSave} />} />
         <Route path="hsa" element={<HSAForm data={data.hsa} onSave={onSave} />} />
         <Route path="charitable" element={<CharitableForm data={data.charitable} onSave={onSave} />} />
-        <Route path="estimated" element={<EstimatedPaymentsForm data={data.estimatedPayments} onSave={onSave} />} />
+        <Route path="estimated" element={<EstimatedPaymentsForm year={year} data={data.estimatedPayments} onSave={onSave} />} />
+        <Route path="rsu" element={<RSUGrantsForm year={year} grants={data.rsuGrants ?? []} prices={data.rsuPrices ?? {}} onSave={onSave} />} />
         <Route path="filing" element={<FilingForm data={data.filing} onSave={onSave} />} />
       </Routes>
     </div>

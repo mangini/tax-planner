@@ -16,6 +16,15 @@ import { computeHSADeduction } from './hsa.js';
 import { computeChildTaxCredit, computeForeignTaxCredit, computeAOTC } from './credits.js';
 import { computeColoradoTax } from './colorado.js';
 import { computeFBAR } from './fbar.js';
+import { computeEstimatedTax } from './estimated-tax.js';
+import { payPeriodsEndedBefore, periodsPerYear } from '../../shared/pay-periods.js';
+
+export interface ComputeOptions {
+  /** Today (YYYY-MM-DD) for the quarterly estimate schedule; defaults to the current date */
+  asOf?: string;
+  /** Prior-year amounts computed from the app's own prior-year data (used when none entered) */
+  computedPriorYear?: { federalTotalTax: number; federalAgi: number; coloradoNetTax: number };
+}
 
 // ─── Helper to collect estimate warnings ───
 
@@ -64,7 +73,7 @@ function collectEstimates(data: TaxYearData): EstimateWarning[] {
 
 // ─── Main computation ───
 
-export function computeTax(data: TaxYearData, config: YearConfig): ComputationResult {
+export function computeTax(data: TaxYearData, config: YearConfig, options: ComputeOptions = {}): ComputationResult {
   // 1. Aggregate income by category
   let wageIncome = 0;
   let medicareWages = 0;
@@ -388,5 +397,57 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
   // Estimate warnings
   const estimateWarnings = collectEstimates(data);
 
-  return { federal, colorado, fbar, estimateWarnings };
+  // Quarterly estimated tax (safe harbor) check
+  // Local calendar date (toISOString would give UTC, i.e. tomorrow in the evening)
+  const now = new Date();
+  const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const asOf = options.asOf ?? localToday;
+  const entered = data.estimatedPayments?.priorYear;
+  const hasEntered = !!entered && (entered.federalTotalTax > 0 || entered.federalAgi > 0);
+  const prior = hasEntered ? entered : options.computedPriorYear;
+  const priorSource = hasEntered ? 'entered' : 'computed';
+
+  // Paychecks left this year, from the pay frequency used in the YTD estimator
+  let remainingPaychecks: number | null = null;
+  const projected = data.w2.find((w) => w.ytdProjection);
+  if (projected?.ytdProjection && asOf.startsWith(`${data.year}-`)) {
+    const freq = projected.ytdProjection.payFrequency;
+    const done = payPeriodsEndedBefore(asOf, freq, projected.ytdProjection.asOf) ?? 0;
+    remainingPaychecks = Math.max(0, periodsPerYear(freq) - done);
+  }
+
+  const ep = data.estimatedPayments;
+  const estimatedTax = {
+    asOf,
+    federal: computeEstimatedTax({
+      jurisdiction: 'federal',
+      year: data.year,
+      currentYearTax: totalTax,
+      projectedWithholding: totalWithholding,
+      estimates: [
+        amountValue(ep?.federalQ1), amountValue(ep?.federalQ2),
+        amountValue(ep?.federalQ3), amountValue(ep?.federalQ4),
+      ],
+      priorYear: prior ? { tax: prior.federalTotalTax, agi: prior.federalAgi, source: priorSource } : null,
+      rules: config.estimatedTax.federal,
+      asOf,
+      remainingPaychecks,
+    }),
+    colorado: computeEstimatedTax({
+      jurisdiction: 'colorado',
+      year: data.year,
+      currentYearTax: colorado.coloradoTax,
+      projectedWithholding: colorado.coloradoWithholding,
+      estimates: [
+        amountValue(ep?.stateQ1), amountValue(ep?.stateQ2),
+        amountValue(ep?.stateQ3), amountValue(ep?.stateQ4),
+      ],
+      priorYear: prior ? { tax: prior.coloradoNetTax, agi: prior.federalAgi, source: priorSource } : null,
+      rules: config.estimatedTax.colorado,
+      asOf,
+      remainingPaychecks,
+    }),
+  };
+
+  return { federal, colorado, fbar, estimateWarnings, estimatedTax };
 }

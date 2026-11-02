@@ -15,7 +15,7 @@ fi
 if ! rclone listremotes | grep -q "^${REMOTE}:$"; then
   echo "No '${REMOTE}' remote configured. Setting up now..."
   echo "Create a remote named '${REMOTE}' with type 'drive' (Google Drive)."
-  echo "Leave client_id and client_secret blank. Choose full drive access."
+  echo "Leave client_id and client_secret blank. Choose option 3 for drive access."
   echo ""
   rclone config
   if ! rclone listremotes | grep -q "^${REMOTE}:$"; then

@@ -13,7 +13,17 @@ router.get('/:year/compute', (req: Request, res: Response) => {
   }
   const data = storage.readYearData(year);
   const config = storage.readYearConfig(year);
-  const result = computeTax(data, config);
+  // Fallback prior-year amounts for the safe harbor, from the app's own prior-year data
+  let computedPriorYear;
+  if (storage.yearExists(year - 1)) {
+    const prior = computeTax(storage.readYearData(year - 1), storage.readYearConfig(year - 1));
+    computedPriorYear = {
+      federalTotalTax: prior.federal.totalTax,
+      federalAgi: prior.federal.agi,
+      coloradoNetTax: prior.colorado.coloradoTax,
+    };
+  }
+  const result = computeTax(data, config, { computedPriorYear });
   res.json(result);
 });
 

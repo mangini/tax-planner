@@ -78,4 +78,10 @@ describe('projectYTD', () => {
   it('returns null with no completed periods', () => {
     expect(projectYTD({ ...base, periodsCompleted: 0 })).toBeNull();
   });
+
+  it('uses an elected supplemental rate between 22% and 37%', () => {
+    // YTD RSU withholding at 23%: salary part 50k + 23k; future vests 50k × 23%
+    const p = projectYTD({ ...base, ytdFederalTax: 50000 + 23000, supplementalFederalRate: 0.23 })!;
+    expect(p.federalWithheld).toBe(73000 + 4 * 2500 + 11500);
+  });
 });

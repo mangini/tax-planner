@@ -5,6 +5,7 @@ import TaxBreakdownChart from './TaxBreakdownChart';
 import EstimateWarnings from './EstimateWarnings';
 import FBARStatusCard from './FBARStatusCard';
 import WithholdingRatesCard from './WithholdingRatesCard';
+import EstimatedTaxCard from './EstimatedTaxCard';
 
 interface Props {
   data: TaxYearData | null;
@@ -23,6 +24,7 @@ export default function Dashboard({ data, result }: Props) {
   return (
     <div className="space-y-6">
       <TaxSummaryCard federal={result.federal} colorado={result.colorado} />
+      <EstimatedTaxCard data={data} result={result} />
       <div className="grid grid-cols-2 gap-6">
         <DeductionComparison deductions={result.federal.deductions} />
         <TaxBreakdownChart federal={result.federal} colorado={result.colorado} />

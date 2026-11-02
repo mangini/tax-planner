@@ -26,6 +26,26 @@ export const W2Schema = z.object({
   stateWages: TaxAmountSchema.default(0),
   stateWithheld: TaxAmountSchema.default(0),
   hsaEmployerContribution: TaxAmountSchema.default(0),
+  ytdProjection: z.object({
+    asOf: z.string(),
+    payFrequency: z.enum(['weekly', 'biweekly', 'semimonthly', 'monthly']),
+    remainingRsuVests: z.number().default(0),
+  }).optional(),
+  ytdEstimator: z.object({
+    payPeriodEnd: z.string().default(''),
+    payFrequency: z.enum(['weekly', 'biweekly', 'semimonthly', 'monthly']).default('semimonthly'),
+    ytdGrossPay: z.number().default(0),
+    ytdSalary: z.number().default(0),
+    ytdPreTaxDeductions: z.number().default(0),
+    ytdFederalTax: z.number().default(0),
+    ytdStateTax: z.number().default(0),
+    ytdOasdi: z.number().default(0),
+    ytdMedicare: z.number().default(0),
+    ytdHsa: z.number().default(0),
+    supplementalFederalRate: z.number().default(0.22),
+    rsuVests: z.array(z.object({ date: z.string(), shares: z.number(), price: z.number() })).default([]),
+    rsuFromGrants: z.boolean().default(true),
+  }).optional(),
 });
 
 export const Form1099INTSchema = z.object({
@@ -186,7 +206,14 @@ export const EducationCreditsSchema = z.object({
   scholarships: TaxAmountSchema.optional(),
 });
 
+export const PriorYearTaxSchema = z.object({
+  federalTotalTax: z.number().default(0),
+  federalAgi: z.number().default(0),
+  coloradoNetTax: z.number().default(0),
+});
+
 export const EstimatedPaymentsSchema = z.object({
+  priorYear: PriorYearTaxSchema.optional(),
   federalQ1: TaxAmountSchema.default(0),
   federalQ2: TaxAmountSchema.default(0),
   federalQ3: TaxAmountSchema.default(0),
@@ -195,6 +222,16 @@ export const EstimatedPaymentsSchema = z.object({
   stateQ2: TaxAmountSchema.default(0),
   stateQ3: TaxAmountSchema.default(0),
   stateQ4: TaxAmountSchema.default(0),
+});
+
+export const RSUGrantSchema = z.object({
+  id: z.string(),
+  owner: FormOwnerSchema,
+  company: z.string().default(''),
+  grantName: z.string().default(''),
+  grantDate: z.string().default(''),
+  vests: z.array(z.object({ date: z.string(), shares: z.number() })).default([]),
+  source: z.enum(['morgan-stanley', 'manual']).default('manual'),
 });
 
 export const FilingSchema = z.object({
@@ -222,6 +259,8 @@ export const TaxYearDataSchema = z.object({
   foreignAccounts: z.array(ForeignAccountSchema).default([]),
   educationCredits: EducationCreditsSchema.optional(),
   estimatedPayments: EstimatedPaymentsSchema.optional(),
+  rsuGrants: z.array(RSUGrantSchema).default([]),
+  rsuPrices: z.record(z.string(), z.number()).default({}),
   checklistChecked: z.record(z.string(), z.boolean()).default({}),
 });
 
@@ -231,6 +270,33 @@ export const TaxBracketSchema = z.object({
   min: z.number(),
   max: z.number().nullable(),
   rate: z.number(),
+});
+
+export const FEDERAL_SAFE_HARBOR_DEFAULT = {
+  currentYearPct: 0.90,
+  priorYearPct: 1.00,
+  priorYearHighIncomePct: 1.10,
+  highIncomeAgi: 150000,
+  minimumBalanceDue: 1000,
+  penaltyRate: 0.07,
+};
+
+export const COLORADO_SAFE_HARBOR_DEFAULT = {
+  currentYearPct: 0.70,
+  priorYearPct: 1.00,
+  priorYearHighIncomePct: 1.10,
+  highIncomeAgi: 150000,
+  minimumBalanceDue: 1000,
+  penaltyRate: 0.11,
+};
+
+const SafeHarborSchema = z.object({
+  currentYearPct: z.number(),
+  priorYearPct: z.number(),
+  priorYearHighIncomePct: z.number(),
+  highIncomeAgi: z.number(),
+  minimumBalanceDue: z.number(),
+  penaltyRate: z.number(),
 });
 
 export const YearConfigSchema = z.object({
@@ -294,6 +360,13 @@ export const YearConfigSchema = z.object({
     aotcMax: z.number(),
     aotcPhaseoutStart: z.number(),
     aotcPhaseoutEnd: z.number(),
+  }),
+  estimatedTax: z.object({
+    federal: SafeHarborSchema,
+    colorado: SafeHarborSchema,
+  }).default({
+    federal: FEDERAL_SAFE_HARBOR_DEFAULT,
+    colorado: COLORADO_SAFE_HARBOR_DEFAULT,
   }),
   fbar: z.object({
     fbarThreshold: z.number(),

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { computeTax } from '../../engine/index.js';
 import { createYear, writeYearData, readYearData, deleteYear, yearExists } from '../../storage.js';
 import { config2025 } from '../../../shared/tax-config-2025.js';
+import { config2026 } from '../../../shared/tax-config-2026.js';
 import type { TaxYearData } from '../../../shared/types.js';
 
 describe('computeTax integration', () => {
@@ -331,6 +332,57 @@ describe('computeTax integration', () => {
       expect(r.federal.additionalMedicareWithheld).toBe(900);
       expect(r.federal.excessSocialSecurityCredit).toBe(6200);
       expect(r.federal.totalWithholding).toBe(60000 + 900 + 6200);
+    });
+  });
+
+  describe('quarterly estimates', () => {
+    const data = (): TaxYearData => ({
+      year: 2026,
+      filing: { status: 'mfj', numChildren: 0 },
+      w2: [{
+        id: '1', owner: 'self', employer: 'Co', wages: 600000, federalWithheld: 100000,
+        socialSecurityWages: 184500, socialSecurityWithheld: 11439,
+        medicareWages: 600000, medicareWithheld: 8700 + 3600,
+        stateWages: 600000, stateWithheld: 26400, hsaEmployerContribution: 0,
+        ytdProjection: { asOf: '2026-10-31', payFrequency: 'semimonthly', remainingRsuVests: 0 },
+      }],
+      form1099INT: [], form1099DIV: [], form1099B: [], form1099G: [], form1099R: [],
+      form1098: [], scheduleK1: [], foreignAccounts: [],
+      estimatedPayments: {
+        priorYear: { federalTotalTax: 100000, federalAgi: 500000, coloradoNetTax: 20000 },
+        federalQ1: 0, federalQ2: 0, federalQ3: 0, federalQ4: 0,
+        stateQ1: 0, stateQ2: 0, stateQ3: 0, stateQ4: 0,
+      },
+    });
+
+    it('uses entered prior-year tax and today for the schedule', () => {
+      const r = computeTax(data(), config2026, { asOf: '2026-11-01' });
+      const fed = r.estimatedTax!.federal;
+      expect(fed.priorYearSource).toBe('entered');
+      expect(fed.basis).toBe('prior-year');
+      expect(fed.requiredAnnualPayment).toBe(110000); // 110% × 100k < 90% of current tax (~125k)
+      // withholding = 100k federal + 3.6k additional Medicare withheld
+      expect(fed.projectedWithholding).toBe(103600);
+      expect(fed.nextDue?.dueDate).toBe('2027-01-15');
+      expect(fed.nextDue?.amount).toBe(110000 - 103600);
+      // Oct 31 → 20 of 24 semi-monthly periods done; Nov 1 → still 20 completed, 4 left
+      expect(fed.remainingPaychecks).toBe(4);
+      const co = r.estimatedTax!.colorado;
+      // 70% × current Colorado tax (~25k) is below 110% × 20k
+      expect(co.basis).toBe('current-year');
+      expect(co.requiredAnnualPayment).toBeCloseTo(0.7 * r.colorado.coloradoTax, 1);
+      expect(co.exempt).toBe(true);                   // 26.4k withheld covers it
+    });
+
+    it('falls back to the computed prior year when none is entered', () => {
+      const d = data();
+      d.estimatedPayments!.priorYear = undefined;
+      const r = computeTax(d, config2026, {
+        asOf: '2026-11-01',
+        computedPriorYear: { federalTotalTax: 90000, federalAgi: 400000, coloradoNetTax: 15000 },
+      });
+      expect(r.estimatedTax!.federal.priorYearSource).toBe('computed');
+      expect(r.estimatedTax!.federal.requiredAnnualPayment).toBe(99000);
     });
   });
 });

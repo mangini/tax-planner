@@ -31,6 +31,41 @@ export interface W2Data {
   stateWages: TaxAmount;
   stateWithheld: TaxAmount;
   hsaEmployerContribution: TaxAmount;
+  /** Set when values were projected with the YTD estimator */
+  ytdProjection?: W2YTDProjectionInfo;
+  /** Saved YTD estimator inputs, so the projection can be revisited and corrected */
+  ytdEstimator?: YTDEstimatorInputs;
+}
+
+export interface YTDEstimatorVest {
+  date: string;   // YYYY-MM-DD
+  shares: number;
+  price: number;
+}
+
+export interface YTDEstimatorInputs {
+  payPeriodEnd: string; // YYYY-MM-DD, from the payslip
+  payFrequency: 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
+  ytdGrossPay: number;
+  ytdSalary: number;
+  ytdPreTaxDeductions: number;
+  ytdFederalTax: number;
+  ytdStateTax: number;
+  ytdOasdi: number;
+  ytdMedicare: number;
+  ytdHsa: number;
+  supplementalFederalRate: number;
+  /** Upcoming vests; ignored while rsuFromGrants is true (derived live from RSU Grants) */
+  rsuVests: YTDEstimatorVest[];
+  rsuFromGrants: boolean;
+}
+
+export interface W2YTDProjectionInfo {
+  /** Pay period end date of the payslip used (YYYY-MM-DD) */
+  asOf: string;
+  payFrequency: 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
+  /** Value of RSU vests after asOf that were included in the projection */
+  remainingRsuVests: number;
 }
 
 export interface Form1099INTData {
@@ -170,7 +205,18 @@ export interface EducationCreditsData {
   scholarships?: TaxAmount;
 }
 
+export interface PriorYearTaxData {
+  /** Federal total tax, Form 1040 line 24 */
+  federalTotalTax: number;
+  /** Federal AGI, Form 1040 line 11 */
+  federalAgi: number;
+  /** Colorado net tax, DR 0104 */
+  coloradoNetTax: number;
+}
+
 export interface EstimatedPaymentsData {
+  /** Prior-year amounts from the filed return, for safe-harbor calculations */
+  priorYear?: PriorYearTaxData;
   federalQ1: TaxAmount;
   federalQ2: TaxAmount;
   federalQ3: TaxAmount;
@@ -179,6 +225,23 @@ export interface EstimatedPaymentsData {
   stateQ2: TaxAmount;
   stateQ3: TaxAmount;
   stateQ4: TaxAmount;
+}
+
+// ─── RSU grants ───
+
+export interface RSUVest {
+  date: string; // YYYY-MM-DD
+  shares: number;
+}
+
+export interface RSUGrant {
+  id: string;
+  owner: FormOwner;
+  company: string;
+  grantName: string;
+  grantDate: string; // YYYY-MM-DD, '' if unknown
+  vests: RSUVest[];
+  source: 'morgan-stanley' | 'manual';
 }
 
 export interface FilingData {
@@ -206,6 +269,9 @@ export interface TaxYearData {
   foreignAccounts: ForeignAccountData[];
   educationCredits?: EducationCreditsData;
   estimatedPayments?: EstimatedPaymentsData;
+  rsuGrants?: RSUGrant[];
+  /** Assumed share price per company name, for valuing vests this year */
+  rsuPrices?: Record<string, number>;
   checklistChecked?: Record<string, boolean>;
 }
 
@@ -285,6 +351,10 @@ export interface YearConfig {
     aotcPhaseoutStart: number;
     aotcPhaseoutEnd: number;
   };
+  estimatedTax: {
+    federal: SafeHarborConfig;
+    colorado: SafeHarborConfig;
+  };
   fbar: {
     fbarThreshold: number;               // aggregate max balance
     form8938YearEnd: number;              // single end-of-year threshold
@@ -292,6 +362,19 @@ export interface YearConfig {
     form8938AnyTime: number;              // single any-time threshold
     form8938AnyTimeMFJ: number;           // MFJ any-time threshold
   };
+}
+
+export interface SafeHarborConfig {
+  /** Share of current-year tax that satisfies the safe harbor (federal 0.90, Colorado 0.70) */
+  currentYearPct: number;
+  /** Share of prior-year tax (1.00), or priorYearHighIncomePct when prior AGI > highIncomeAgi */
+  priorYearPct: number;
+  priorYearHighIncomePct: number;
+  highIncomeAgi: number;
+  /** No penalty when the balance due after withholding is below this */
+  minimumBalanceDue: number;
+  /** Annual rate for the underpayment penalty estimate */
+  penaltyRate: number;
 }
 
 // ─── Computation Results ───
@@ -378,9 +461,51 @@ export interface EstimateWarning {
   form: string;
 }
 
+export interface EstimatedTaxQuarter {
+  label: string;               // 'Q1'..'Q4'
+  dueDate: string;             // YYYY-MM-DD
+  requiredCumulative: number;
+  withholdingCumulative: number;
+  estimatesCumulative: number;
+  /** Cumulative shortfall at this due date (with payments entered so far) */
+  shortfall: number;
+  /** Suggested payment for this installment to stay on track (late ones: pay now) */
+  suggestedPayment: number;
+  isPast: boolean;
+}
+
+export interface EstimatedTaxResult {
+  jurisdiction: 'federal' | 'colorado';
+  currentYearTax: number;
+  priorYearTax: number | null;
+  priorYearAgi: number | null;
+  priorYearSource: 'entered' | 'computed' | 'none';
+  /** Smaller of the current-year and prior-year tests */
+  requiredAnnualPayment: number;
+  basis: 'current-year' | 'prior-year';
+  projectedWithholding: number;
+  estimatesPaid: number;
+  /** Tax − withholding − estimates */
+  projectedBalanceDue: number;
+  /** True when no estimates are needed at all (e.g. balance due below minimum) */
+  exempt: boolean;
+  exemptReason?: string;
+  quarters: EstimatedTaxQuarter[];
+  /** Next installment not yet due (or null after the last due date) */
+  nextDue: { label: string; dueDate: string; amount: number } | null;
+  /** Penalty estimate if no further estimates are paid */
+  penaltyIfNothingPaid: number;
+  /** Penalty already unavoidable if suggested payments are made from today */
+  penaltyIfSuggestedPaid: number;
+  /** Extra withholding per remaining paycheck that would cover the shortfall instead */
+  extraWithholdingPerPaycheck: number | null;
+  remainingPaychecks: number | null;
+}
+
 export interface ComputationResult {
   federal: FederalTaxBreakdown;
   colorado: ColoradoTaxBreakdown;
   fbar: FBARResult;
+  estimatedTax?: { federal: EstimatedTaxResult; colorado: EstimatedTaxResult; asOf: string };
   estimateWarnings: EstimateWarning[];
 }

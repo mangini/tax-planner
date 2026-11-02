@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { payPeriodsCompleted } from '../../shared/pay-periods.js';
+import { payPeriodsCompleted, payPeriodsEndedBefore } from '../../shared/pay-periods.js';
 
 describe('payPeriodsCompleted', () => {
   it('counts semi-monthly periods ending on the 15th and month end', () => {
@@ -38,5 +38,23 @@ describe('payPeriodsCompleted', () => {
   it('rejects invalid dates', () => {
     expect(payPeriodsCompleted('', 'biweekly')).toBeNull();
     expect(payPeriodsCompleted('2026-02-30', 'monthly')).toBeNull();
+  });
+});
+
+describe('payPeriodsEndedBefore', () => {
+  it('does not count the in-progress semi-monthly or monthly period', () => {
+    expect(payPeriodsEndedBefore('2026-11-01', 'semimonthly')).toBe(20);
+    expect(payPeriodsEndedBefore('2026-11-15', 'semimonthly')).toBe(20);
+    expect(payPeriodsEndedBefore('2026-11-16', 'semimonthly')).toBe(21);
+    expect(payPeriodsEndedBefore('2026-11-01', 'monthly')).toBe(10);
+  });
+
+  it('counts biweekly periods from a known period end', () => {
+    // Anchor: period 22 ends 2026-10-24; next ends 11-07
+    expect(payPeriodsEndedBefore('2026-11-01', 'biweekly', '2026-10-24')).toBe(22);
+    expect(payPeriodsEndedBefore('2026-11-07', 'biweekly', '2026-10-24')).toBe(22);
+    expect(payPeriodsEndedBefore('2026-11-08', 'biweekly', '2026-10-24')).toBe(23);
+    expect(payPeriodsEndedBefore('2026-10-24', 'biweekly', '2026-10-24')).toBe(21);
+    expect(payPeriodsEndedBefore('2026-10-10', 'biweekly', '2026-10-24')).toBe(20);
   });
 });
