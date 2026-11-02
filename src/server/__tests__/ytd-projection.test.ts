@@ -84,4 +84,21 @@ describe('projectYTD', () => {
     const p = projectYTD({ ...base, ytdFederalTax: 50000 + 23000, supplementalFederalRate: 0.23 })!;
     expect(p.federalWithheld).toBe(73000 + 4 * 2500 + 11500);
   });
+
+  it('adds W-4 extra withholding to future paychecks only', () => {
+    // Extra $8,000 starting with the next paycheck: all 4 remaining
+    const p = projectYTD({ ...base, extraFederal: { perPaycheck: 8000, periodsInYTD: 0, futurePeriods: 4 } })!;
+    expect(p.federalWithheld).toBe(93000 + 32000);
+  });
+
+  it('removes extra withholding already in YTD from the regular average', () => {
+    // Latest payslip (period 20) already had the extra: YTD federal includes 8k more.
+    // Regular salary withholding stays 2.5k/period; 4 more extra paychecks.
+    const p = projectYTD({
+      ...base,
+      ytdFederalTax: 72000 + 8000,
+      extraFederal: { perPaycheck: 8000, periodsInYTD: 1, futurePeriods: 4 },
+    })!;
+    expect(p.federalWithheld).toBe(80000 + 4 * 2500 + 32000 + 11000);
+  });
 });

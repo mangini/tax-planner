@@ -8,12 +8,12 @@ import type {
   YTDEstimatorVest,
 } from '@shared/types';
 import { vestsInYear } from '@shared/rsu';
-import { PAY_FREQUENCIES, payPeriodsCompleted, periodsPerYear, type PayFrequency } from '@shared/pay-periods';
+import { PAY_FREQUENCIES, payPeriodsCompleted, payPeriodsEndedBefore, periodsPerYear, type PayFrequency } from '@shared/pay-periods';
 import { projectYTD, type YTDProjection } from '@shared/ytd-projection';
 
 type NumericField =
   | 'ytdGrossPay' | 'ytdSalary' | 'ytdPreTaxDeductions' | 'ytdFederalTax'
-  | 'ytdStateTax' | 'ytdOasdi' | 'ytdMedicare' | 'ytdHsa';
+  | 'ytdStateTax' | 'ytdOasdi' | 'ytdMedicare' | 'ytdHsa' | 'extraFederalPerPaycheck';
 
 interface Props {
   config: YearConfig;
@@ -44,6 +44,8 @@ export const defaultEstimatorInputs: YTDEstimatorInputs = {
   ytdMedicare: 0,
   ytdHsa: 0,
   supplementalFederalRate: MIN_SUPPLEMENTAL_RATE,
+  extraFederalPerPaycheck: 0,
+  extraFederalStart: '',
   rsuVests: [],
   rsuFromGrants: true,
 };
@@ -97,6 +99,20 @@ export default function YTDEstimator({ config, year, owner, grants, prices, save
   const completed = payPeriodsCompleted(inputs.payPeriodEnd, inputs.payFrequency);
   const total = periodsPerYear(inputs.payFrequency);
   const nonRecurringYTD = Math.max(0, inputs.ytdGrossPay - inputs.ytdSalary);
+
+  // W-4 extra withholding: how many paychecks already had it, and how many still will
+  let extraFederal: { perPaycheck: number; periodsInYTD: number; futurePeriods: number } | undefined;
+  if (completed && inputs.extraFederalPerPaycheck > 0) {
+    const remainingPeriods = Math.max(0, total - completed);
+    const start = inputs.extraFederalStart;
+    const endedBeforeStart = start
+      ? payPeriodsEndedBefore(start, inputs.payFrequency, inputs.payPeriodEnd) ?? 0
+      : completed;
+    extraFederal =
+      start && start <= inputs.payPeriodEnd
+        ? { perPaycheck: inputs.extraFederalPerPaycheck, periodsInYTD: Math.max(0, completed - endedBeforeStart), futurePeriods: remainingPeriods }
+        : { perPaycheck: inputs.extraFederalPerPaycheck, periodsInYTD: 0, futurePeriods: Math.max(0, Math.min(remainingPeriods, total - endedBeforeStart)) };
+  }
   const salaryMissing = inputs.ytdGrossPay > 0 && inputs.ytdSalary <= 0;
 
   const projected =
@@ -115,6 +131,7 @@ export default function YTDEstimator({ config, year, owner, grants, prices, save
           remainingRsuVests,
           supplementalFederalRate: inputs.supplementalFederalRate,
           supplementalStateRate: config.colorado.flatRate,
+          extraFederal,
           ssWageBase: config.socialSecurity.wageBase,
           ssRate: config.socialSecurity.employeeRate,
           medicareRate: config.socialSecurity.medicareRate,
@@ -183,6 +200,22 @@ export default function YTDEstimator({ config, year, owner, grants, prices, save
             {money('ytdMedicare', 'YTD Medicare')}
             {money('ytdHsa', 'YTD HSA (Employer)')}
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            {money('extraFederalPerPaycheck', 'Extra federal withholding per paycheck', 'W-4 line 4c, if you changed it this year')}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Starting with paycheck ending</label>
+              <input type="date" value={inputs.extraFederalStart}
+                onChange={(e) => setInputs({ ...inputs, extraFederalStart: e.target.value })}
+                className={inputClass} disabled={!inputs.extraFederalPerPaycheck} />
+              <p className="text-[11px] text-gray-400 mt-0.5">Leave blank if it starts after this payslip</p>
+            </div>
+          </div>
+          {extraFederal && (
+            <p className="text-xs text-gray-600 -mt-2">
+              {extraFederal.periodsInYTD > 0 && `Already in YTD on ${extraFederal.periodsInYTD} paycheck(s) (excluded from the regular average). `}
+              Adds {fmt(extraFederal.perPaycheck * extraFederal.futurePeriods)} over {extraFederal.futurePeriods} remaining paycheck(s).
+            </p>
+          )}
           {salaryMissing && (
             <p className="text-xs text-red-600 -mt-2">Enter YTD Salary to project the remaining paychecks.</p>
           )}

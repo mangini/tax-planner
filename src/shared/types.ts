@@ -55,6 +55,10 @@ export interface YTDEstimatorInputs {
   ytdMedicare: number;
   ytdHsa: number;
   supplementalFederalRate: number;
+  /** Extra federal withholding per paycheck (W-4 line 4c) */
+  extraFederalPerPaycheck: number;
+  /** Pay period end date of the first paycheck with the extra ('' = next paycheck after the payslip) */
+  extraFederalStart: string;
   /** Upcoming vests; ignored while rsuFromGrants is true (derived live from RSU Grants) */
   rsuVests: YTDEstimatorVest[];
   rsuFromGrants: boolean;

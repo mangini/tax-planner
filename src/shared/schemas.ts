@@ -43,6 +43,8 @@ export const W2Schema = z.object({
     ytdMedicare: z.number().default(0),
     ytdHsa: z.number().default(0),
     supplementalFederalRate: z.number().default(0.22),
+    extraFederalPerPaycheck: z.number().default(0),
+    extraFederalStart: z.string().default(''),
     rsuVests: z.array(z.object({ date: z.string(), shares: z.number(), price: z.number() })).default([]),
     rsuFromGrants: z.boolean().default(true),
   }).optional(),

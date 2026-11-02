@@ -30,6 +30,14 @@ export interface YTDProjectionInput {
   supplementalFederalRate: number;
   /** State withholding rate on RSUs/bonuses */
   supplementalStateRate: number;
+  /** Extra federal withholding per paycheck (W-4 line 4c), if changed mid-year */
+  extraFederal?: {
+    perPaycheck: number;
+    /** Paychecks already in YTD that included the extra amount */
+    periodsInYTD: number;
+    /** Remaining paychecks that will include it */
+    futurePeriods: number;
+  };
   ssWageBase: number;
   ssRate: number;
   medicareRate: number;
@@ -81,10 +89,15 @@ export function projectYTD(i: YTDProjectionInput): YTDProjection | null {
     i.ytdFederalTax,
     supplementalFederal(0, ytdNonRecurring, i.supplementalFederalRate)
   );
-  const ytdFedSalary = i.ytdFederalTax - ytdFedSupplemental;
+  // Regular salary withholding, excluding any W-4 extra already in YTD
+  const extra = i.extraFederal;
+  const extraInYTD = extra ? extra.perPaycheck * Math.min(extra.periodsInYTD, i.periodsCompleted) : 0;
+  const ytdFedSalary = Math.max(0, i.ytdFederalTax - ytdFedSupplemental - extraInYTD);
+  const extraFuture = extra ? extra.perPaycheck * Math.min(extra.futurePeriods, remaining) : 0;
   const federalWithheld =
     i.ytdFederalTax +
     perPeriod(ytdFedSalary) * remaining +
+    extraFuture +
     supplementalFederal(ytdNonRecurring, i.remainingRsuVests, i.supplementalFederalRate);
 
   // State: same split at the flat supplemental rate
