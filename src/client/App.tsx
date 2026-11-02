@@ -133,6 +133,7 @@ export default function App() {
               <FormsPage
                 data={data}
                 year={selectedYear}
+                config={config}
                 onSave={handleSaveData}
                 refresh={refresh}
               />

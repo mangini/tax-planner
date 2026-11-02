@@ -1,5 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import type { TaxYearData } from '@shared/types';
+import type { TaxYearData, YearConfig } from '@shared/types';
+import { defaultConfigForYear } from '@shared/tax-configs';
 import FormList from '../components/forms/FormList';
 import W2Form from '../components/forms/W2Form';
 import Form1099INT from '../components/forms/Form1099INT';
@@ -18,6 +19,7 @@ import FilingForm from '../components/forms/FilingForm';
 interface Props {
   data: TaxYearData | null;
   year: number;
+  config: YearConfig | null;
   onSave: (data: Partial<TaxYearData>) => Promise<void>;
   refresh: () => void;
 }
@@ -38,7 +40,7 @@ const formLabels: Record<string, string> = {
   filing: 'Filing Status',
 };
 
-export default function FormsPage({ data, year, onSave, refresh }: Props) {
+export default function FormsPage({ data, year, config, onSave, refresh }: Props) {
   const location = useLocation();
   const isIndex = location.pathname === '/forms' || location.pathname === '/forms/';
   const formSlug = location.pathname.split('/forms/')[1]?.replace(/\/$/, '');
@@ -58,7 +60,7 @@ export default function FormsPage({ data, year, onSave, refresh }: Props) {
       </div>
       <Routes>
         <Route index element={<FormList data={data} />} />
-        <Route path="w2" element={<W2Form data={data.w2} onSave={onSave} />} />
+        <Route path="w2" element={<W2Form data={data.w2} config={config ?? defaultConfigForYear(year)} onSave={onSave} />} />
         <Route path="1099int" element={<Form1099INT data={data.form1099INT} onSave={onSave} />} />
         <Route path="1099div" element={<Form1099DIV data={data.form1099DIV} onSave={onSave} />} />
         <Route path="1099b" element={<Form1099B data={data.form1099B} onSave={onSave} />} />

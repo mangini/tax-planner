@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { v4 as uuid } from 'uuid';
-import type { W2Data, TaxAmount, FormOwner } from '@shared/types';
+import type { W2Data, TaxAmount, FormOwner, YearConfig } from '@shared/types';
 import MoneyInput from './MoneyInput';
 import OwnerSelect from './OwnerSelect';
 import EstimateToggle from './EstimateToggle';
@@ -9,6 +9,7 @@ import YTDEstimator from './YTDEstimator';
 
 interface Props {
   data: W2Data[];
+  config: YearConfig;
   onSave: (data: { w2: W2Data[] }) => Promise<void>;
 }
 
@@ -27,7 +28,7 @@ const newW2 = (): W2Data => ({
   hsaEmployerContribution: 0,
 });
 
-export default function W2Form({ data, onSave }: Props) {
+export default function W2Form({ data, config, onSave }: Props) {
   const [forms, setForms] = useState<W2Data[]>(data.length > 0 ? data : []);
   const [saving, setSaving] = useState(false);
 
@@ -61,7 +62,7 @@ export default function W2Form({ data, onSave }: Props) {
           </div>
           <div className="px-4 py-3 space-y-2">
             {f.isEstimate && (
-              <YTDEstimator onApply={(values) => {
+              <YTDEstimator config={config} onApply={(values) => {
                 setForms(forms.map((form) => form.id === f.id ? { ...form, ...values } : form));
               }} />
             )}

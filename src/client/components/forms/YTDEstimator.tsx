@@ -1,80 +1,93 @@
 import { useState } from 'react';
+import type { YearConfig } from '@shared/types';
+import { PAY_FREQUENCIES, payPeriodsCompleted, periodsPerYear, type PayFrequency } from '@shared/pay-periods';
+import { projectYTD, type YTDProjection } from '@shared/ytd-projection';
 
 interface YTDInputs {
-  payPeriodsCompleted: number;
-  totalPayPeriods: number;
+  payPeriodEnd: string; // YYYY-MM-DD, from the payslip
+  payFrequency: PayFrequency;
   ytdGrossPay: number;
+  ytdSalary: number;
   ytdPreTaxDeductions: number;
   ytdFederalTax: number;
   ytdStateTax: number;
   ytdOasdi: number;
   ytdMedicare: number;
   ytdHsa: number;
+  remainingRsuVests: number;
+  supplementalFederalRate: number;
 }
 
-interface ProjectedValues {
-  wages: number;
-  federalWithheld: number;
-  socialSecurityWages: number;
-  socialSecurityWithheld: number;
-  medicareWages: number;
-  medicareWithheld: number;
-  stateWages: number;
-  stateWithheld: number;
-  hsaEmployerContribution: number;
-}
+type NumericField = Exclude<keyof YTDInputs, 'payPeriodEnd' | 'payFrequency'>;
 
 interface Props {
-  onApply: (values: ProjectedValues) => void;
+  config: YearConfig;
+  onApply: (values: YTDProjection) => void;
 }
 
 const defaultInputs: YTDInputs = {
-  payPeriodsCompleted: 0,
-  totalPayPeriods: 24,
+  payPeriodEnd: '',
+  payFrequency: 'semimonthly',
   ytdGrossPay: 0,
+  ytdSalary: 0,
   ytdPreTaxDeductions: 0,
   ytdFederalTax: 0,
   ytdStateTax: 0,
   ytdOasdi: 0,
   ytdMedicare: 0,
   ytdHsa: 0,
+  remainingRsuVests: 0,
+  supplementalFederalRate: 0.22,
 };
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
-function project(inputs: YTDInputs): ProjectedValues | null {
-  if (inputs.payPeriodsCompleted <= 0 || inputs.totalPayPeriods <= 0) return null;
-  const factor = inputs.totalPayPeriods / inputs.payPeriodsCompleted;
-  return {
-    wages: round2((inputs.ytdGrossPay - inputs.ytdPreTaxDeductions) * factor),
-    federalWithheld: round2(inputs.ytdFederalTax * factor),
-    socialSecurityWages: round2(inputs.ytdGrossPay * factor),
-    socialSecurityWithheld: round2(inputs.ytdOasdi * factor),
-    medicareWages: round2(inputs.ytdGrossPay * factor),
-    medicareWithheld: round2(inputs.ytdMedicare * factor),
-    stateWages: round2((inputs.ytdGrossPay - inputs.ytdPreTaxDeductions) * factor),
-    stateWithheld: round2(inputs.ytdStateTax * factor),
-    hsaEmployerContribution: round2(inputs.ytdHsa * factor),
-  };
-}
 
 function fmt(n: number): string {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 }
 
-export default function YTDEstimator({ onApply }: Props) {
+export default function YTDEstimator({ config, onApply }: Props) {
   const [open, setOpen] = useState(false);
   const [inputs, setInputs] = useState<YTDInputs>(defaultInputs);
 
-  const projected = project(inputs);
+  const completed = payPeriodsCompleted(inputs.payPeriodEnd, inputs.payFrequency);
+  const total = periodsPerYear(inputs.payFrequency);
+  const nonRecurringYTD = Math.max(0, inputs.ytdGrossPay - inputs.ytdSalary);
+  const salaryMissing = inputs.ytdGrossPay > 0 && inputs.ytdSalary <= 0;
 
-  const set = (field: keyof YTDInputs, value: string) => {
+  const projected =
+    completed && !salaryMissing
+      ? projectYTD({
+          periodsCompleted: completed,
+          periodsPerYear: total,
+          ytdGrossPay: inputs.ytdGrossPay,
+          ytdSalary: inputs.ytdSalary,
+          ytdPreTaxDeductions: inputs.ytdPreTaxDeductions,
+          ytdFederalTax: inputs.ytdFederalTax,
+          ytdStateTax: inputs.ytdStateTax,
+          ytdOasdi: inputs.ytdOasdi,
+          ytdMedicare: inputs.ytdMedicare,
+          ytdHsaEmployer: inputs.ytdHsa,
+          remainingRsuVests: inputs.remainingRsuVests,
+          supplementalFederalRate: inputs.supplementalFederalRate,
+          supplementalStateRate: config.colorado.flatRate,
+          ssWageBase: config.socialSecurity.wageBase,
+          ssRate: config.socialSecurity.employeeRate,
+          medicareRate: config.socialSecurity.medicareRate,
+        })
+      : null;
+
+  const set = (field: NumericField, value: string) => {
     setInputs({ ...inputs, [field]: parseFloat(value) || 0 });
   };
 
   const inputClass = "border border-gray-300 rounded px-2 py-1.5 text-sm w-full";
+
+  const money = (field: NumericField, label: string, hint?: string) => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <input type="number" step="0.01" value={inputs[field] || ''} onChange={(e) => set(field, e.target.value)} className={inputClass} />
+      {hint && <p className="text-[11px] text-gray-400 mt-0.5">{hint}</p>}
+    </div>
+  );
 
   return (
     <div className="mb-4 border border-amber-200 rounded bg-amber-50/50">
@@ -84,54 +97,69 @@ export default function YTDEstimator({ onApply }: Props) {
         className="w-full px-4 py-2 text-left text-sm font-medium text-amber-800 hover:bg-amber-100/50 flex justify-between items-center"
       >
         YTD Estimator
-        <span className="text-xs">{open ? '\u25B2' : '\u25BC'}</span>
+        <span className="text-xs">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
         <div className="px-4 pb-4 space-y-4">
           <p className="text-xs text-amber-700">
-            Enter your year-to-date paycheck values to extrapolate full-year W-2 amounts.
+            Enter YTD values from your latest payslip. Salary is extrapolated across the remaining
+            pay periods; RSU vests and bonuses already paid are kept as-is.
           </p>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Pay periods completed</label>
-              <input type="number" value={inputs.payPeriodsCompleted || ''} onChange={(e) => set('payPeriodsCompleted', e.target.value)} className={inputClass} />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Pay period end date</label>
+              <input type="date" value={inputs.payPeriodEnd} onChange={(e) => setInputs({ ...inputs, payPeriodEnd: e.target.value })} className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Total pay periods</label>
-              <input type="number" value={inputs.totalPayPeriods || ''} onChange={(e) => set('totalPayPeriods', e.target.value)} className={inputClass} />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Pay frequency</label>
+              <select value={inputs.payFrequency} onChange={(e) => setInputs({ ...inputs, payFrequency: e.target.value as PayFrequency })} className={inputClass}>
+                {PAY_FREQUENCIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
             </div>
           </div>
+          {completed !== null && (
+            <p className="text-xs text-gray-600 -mt-2">
+              {completed} of {total} pay periods completed
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">YTD Gross Pay</label>
-              <input type="number" step="0.01" value={inputs.ytdGrossPay || ''} onChange={(e) => set('ytdGrossPay', e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">YTD Pre-Tax Deductions</label>
-              <input type="number" step="0.01" value={inputs.ytdPreTaxDeductions || ''} onChange={(e) => set('ytdPreTaxDeductions', e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">YTD Federal Tax</label>
-              <input type="number" step="0.01" value={inputs.ytdFederalTax || ''} onChange={(e) => set('ytdFederalTax', e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">YTD State Tax</label>
-              <input type="number" step="0.01" value={inputs.ytdStateTax || ''} onChange={(e) => set('ytdStateTax', e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">YTD OASDI (Social Security)</label>
-              <input type="number" step="0.01" value={inputs.ytdOasdi || ''} onChange={(e) => set('ytdOasdi', e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">YTD Medicare</label>
-              <input type="number" step="0.01" value={inputs.ytdMedicare || ''} onChange={(e) => set('ytdMedicare', e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">YTD HSA (Employer)</label>
-              <input type="number" step="0.01" value={inputs.ytdHsa || ''} onChange={(e) => set('ytdHsa', e.target.value)} className={inputClass} />
+            {money('ytdGrossPay', 'YTD Gross Pay', 'Includes vested RSUs and bonuses')}
+            {money('ytdSalary', 'YTD Salary', 'Regular base pay only')}
+            {money('ytdPreTaxDeductions', 'YTD Pre-Tax Deductions')}
+            {money('ytdFederalTax', 'YTD Federal Tax')}
+            {money('ytdStateTax', 'YTD State Tax')}
+            {money('ytdOasdi', 'YTD OASDI (Social Security)')}
+            {money('ytdMedicare', 'YTD Medicare')}
+            {money('ytdHsa', 'YTD HSA (Employer)')}
+          </div>
+          {salaryMissing && (
+            <p className="text-xs text-red-600 -mt-2">Enter YTD Salary to project the remaining paychecks.</p>
+          )}
+          {nonRecurringYTD > 0 && (
+            <p className="text-xs text-gray-600 -mt-2">
+              Already paid RSUs / bonuses: {fmt(nonRecurringYTD)} (gross − salary), not extrapolated.
+            </p>
+          )}
+
+          <div className="border border-gray-200 rounded bg-white p-3 space-y-3">
+            <h4 className="text-xs font-semibold text-gray-700">Upcoming RSU Vests</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {money('remainingRsuVests', 'Remaining vests this year ($)', 'Shares × est. price; exclude vests already on payslips')}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Federal withholding on vests</label>
+                <select
+                  value={inputs.supplementalFederalRate}
+                  onChange={(e) => setInputs({ ...inputs, supplementalFederalRate: parseFloat(e.target.value) })}
+                  className={inputClass}
+                >
+                  <option value={0.22}>22% (default supplemental)</option>
+                  <option value={0.37}>37% (elected)</option>
+                </select>
+                <p className="text-[11px] text-gray-400 mt-0.5">37% always applies above $1M of supplemental pay</p>
+              </div>
             </div>
           </div>
 
