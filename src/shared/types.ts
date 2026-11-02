@@ -222,9 +222,13 @@ export interface YearConfig {
   federalBrackets: TaxBracket[];
   ltcgBrackets: TaxBracket[];
   standardDeduction: number;
+  /** Max net capital loss deductible against ordinary income (MFJ $3,000) */
+  capitalLossLimit: number;
   amt: {
     exemption: number;
     phaseoutStart: number;
+    /** Exemption reduction per $1 of AMTI over phaseoutStart (25% through 2025, 50% from 2026) */
+    phaseoutRate: number;
     rate26threshold: number;
     rate26: number;
     rate28: number;
@@ -262,6 +266,16 @@ export interface YearConfig {
   charitable: {
     cashAGILimit: number;   // decimal, e.g. 0.60
     propertyAGILimit: number;
+    /** Itemizers: contributions only deductible above this fraction of AGI (0.005 from 2026) */
+    agiFloorPct: number;
+    /** Non-itemizers: max cash contribution deduction (MFJ $2,000 from 2026) */
+    nonItemizerCashMax: number;
+  };
+  itemized: {
+    /** Itemized deductions reduced by this × min(itemized, AGI over 37% bracket start); 2/37 from 2026 */
+    topBracketReductionRate: number;
+    /** Mortgage insurance premiums (1098 PMI) deductible — restored from 2026 */
+    mortgageInsuranceDeductible: boolean;
   };
   colorado: {
     flatRate: number;
@@ -284,13 +298,19 @@ export interface YearConfig {
 
 export interface DeductionBreakdown {
   mortgageInterest: number;
+  mortgageInsurance?: number;
   propertyTax: number;
+  stateIncomeTax?: number;
   saltTotal: number;
   saltCapped: number;
   charitableCash: number;
   charitableProperty: number;
   charitableTotal: number;
+  /** Section 68 (2/37) reduction of itemized deductions, 2026+ */
+  itemizedReduction?: number;
   totalItemized: number;
+  /** Charitable deduction for non-itemizers, 2026+ (included in deductionUsed) */
+  nonItemizerCharitable?: number;
   standardDeduction: number;
   usingItemized: boolean;
   deductionUsed: number;
@@ -322,9 +342,13 @@ export interface FederalTaxBreakdown {
   totalTaxBeforeCredits: number;
   childTaxCredit: number;
   foreignTaxCredit: number;
+  educationCredit?: number;
   totalCredits: number;
   totalTax: number;
+  /** Includes additional Medicare tax withheld and excess Social Security credit */
   totalWithholding: number;
+  additionalMedicareWithheld?: number;
+  excessSocialSecurityCredit?: number;
   totalEstimatedPayments: number;
   balanceDue: number;
   effectiveRate: number;
@@ -333,6 +357,8 @@ export interface FederalTaxBreakdown {
 
 export interface ColoradoTaxBreakdown {
   federalTaxableIncome: number;
+  stateIncomeTaxAddback?: number;
+  stateRefundSubtraction?: number;
   coloradoTaxableIncome: number;
   coloradoTax: number;
   coloradoWithholding: number;

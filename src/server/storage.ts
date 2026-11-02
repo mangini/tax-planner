@@ -3,8 +3,7 @@ import path from 'path';
 import { v4 as uuid } from 'uuid';
 import { TaxYearDataSchema, YearConfigSchema } from '../shared/schemas.js';
 import type { TaxYearData, YearConfig } from '../shared/types.js';
-import { config2025 } from '../shared/tax-config-2025.js';
-import { config2026 } from '../shared/tax-config-2026.js';
+import { defaultConfigForYear } from '../shared/tax-configs.js';
 
 const DATA_DIR = process.env.TAX_DATA_DIR || path.resolve(process.cwd(), 'data');
 
@@ -23,8 +22,7 @@ function configPath(year: number): string {
 }
 
 function defaultConfig(year: number): YearConfig {
-  if (year === 2026) return { ...config2026 };
-  return { ...config2025, year };
+  return defaultConfigForYear(year);
 }
 
 // ─── Clone helpers ───

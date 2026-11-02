@@ -280,4 +280,57 @@ describe('computeTax integration', () => {
     expect(result.federal.balanceDue).toBe(0);
     expect(result.colorado.coloradoTax).toBe(0);
   });
+
+  describe('capital gains netting', () => {
+    const base = (form1099B: TaxYearData['form1099B'], wages = 100000): TaxYearData => ({
+      year: 2025,
+      filing: { status: 'mfj', numChildren: 0 },
+      w2: [{
+        id: '1', owner: 'self', employer: 'Co', wages, federalWithheld: 0,
+        socialSecurityWages: wages, socialSecurityWithheld: 0,
+        medicareWages: wages, medicareWithheld: 0,
+        stateWages: wages, stateWithheld: 0, hsaEmployerContribution: 0,
+      }],
+      form1099INT: [], form1099DIV: [], form1099B, form1099G: [], form1099R: [],
+      form1098: [], scheduleK1: [], foreignAccounts: [],
+    });
+
+    it('limits a net capital loss to $3,000 against ordinary income', () => {
+      const r = computeTax(base([{
+        id: '1', owner: 'self', broker: 'B',
+        shortTermProceeds: 0, shortTermBasis: 0, longTermProceeds: 0, longTermBasis: 50000,
+      }]), config2025);
+      expect(r.federal.grossIncome).toBe(97000);
+      expect(r.federal.capitalGainsTax).toBe(0);
+    });
+
+    it('nets short-term losses against long-term gains before preferential rates', () => {
+      // LTCG 50k, STCL 20k → net capital gain 30k; wages 300k
+      const r = computeTax(base([{
+        id: '1', owner: 'self', broker: 'B',
+        shortTermProceeds: 0, shortTermBasis: 20000, longTermProceeds: 50000, longTermBasis: 0,
+      }], 300000), config2025);
+      expect(r.federal.grossIncome).toBe(330000);
+      expect(r.federal.capitalGainsTax).toBe(4500); // 30k × 15%
+    });
+
+    it('credits additional Medicare withheld and excess Social Security', () => {
+      const data = base([], 0);
+      data.w2 = [
+        { id: '1', owner: 'self', employer: 'A', wages: 300000, federalWithheld: 50000,
+          socialSecurityWages: 176100, socialSecurityWithheld: 10918.2,
+          medicareWages: 300000, medicareWithheld: 4350 + 900, // 0.9% over $200k
+          stateWages: 300000, stateWithheld: 0, hsaEmployerContribution: 0 },
+        { id: '2', owner: 'self', employer: 'B', wages: 100000, federalWithheld: 10000,
+          socialSecurityWages: 100000, socialSecurityWithheld: 6200,
+          medicareWages: 100000, medicareWithheld: 1450,
+          stateWages: 100000, stateWithheld: 0, hsaEmployerContribution: 0 },
+      ];
+      const r = computeTax(data, config2025);
+      expect(r.federal.additionalMedicareTax).toBe(1350); // (400k − 250k) × 0.9%
+      expect(r.federal.additionalMedicareWithheld).toBe(900);
+      expect(r.federal.excessSocialSecurityCredit).toBe(6200);
+      expect(r.federal.totalWithholding).toBe(60000 + 900 + 6200);
+    });
+  });
 });

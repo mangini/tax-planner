@@ -238,9 +238,11 @@ export const YearConfigSchema = z.object({
   federalBrackets: z.array(TaxBracketSchema),
   ltcgBrackets: z.array(TaxBracketSchema),
   standardDeduction: z.number(),
+  capitalLossLimit: z.number().default(3000),
   amt: z.object({
     exemption: z.number(),
     phaseoutStart: z.number(),
+    phaseoutRate: z.number().default(0.25),
     rate26threshold: z.number(),
     rate26: z.number(),
     rate28: z.number(),
@@ -278,7 +280,13 @@ export const YearConfigSchema = z.object({
   charitable: z.object({
     cashAGILimit: z.number(),
     propertyAGILimit: z.number(),
+    agiFloorPct: z.number().default(0),
+    nonItemizerCashMax: z.number().default(0),
   }),
+  itemized: z.object({
+    topBracketReductionRate: z.number().default(0),
+    mortgageInsuranceDeductible: z.boolean().default(false),
+  }).default({ topBracketReductionRate: 0, mortgageInsuranceDeductible: false }),
   colorado: z.object({
     flatRate: z.number(),
   }),

@@ -99,6 +99,16 @@ export default function ConfigPage({ config, onSave, onReset }: Props) {
               onChange={(v) => set((c) => ({ ...c, charitable: { ...c.charitable, cashAGILimit: v } }))} />
             <PctField label="Charitable Property AGI Limit" value={localConfig.charitable.propertyAGILimit}
               onChange={(v) => set((c) => ({ ...c, charitable: { ...c.charitable, propertyAGILimit: v } }))} />
+            <PctField label="Charitable AGI Floor" value={localConfig.charitable.agiFloorPct}
+              onChange={(v) => set((c) => ({ ...c, charitable: { ...c.charitable, agiFloorPct: v } }))} />
+            <DollarField label="Non-Itemizer Charitable Max" value={localConfig.charitable.nonItemizerCashMax}
+              onChange={(v) => set((c) => ({ ...c, charitable: { ...c.charitable, nonItemizerCashMax: v } }))} />
+            <PctField label="Itemized Reduction (37% bracket)" value={localConfig.itemized.topBracketReductionRate}
+              onChange={(v) => set((c) => ({ ...c, itemized: { ...c.itemized, topBracketReductionRate: v } }))} />
+            <CheckField label="Mortgage Insurance Deductible" value={localConfig.itemized.mortgageInsuranceDeductible}
+              onChange={(v) => set((c) => ({ ...c, itemized: { ...c.itemized, mortgageInsuranceDeductible: v } }))} />
+            <DollarField label="Capital Loss Limit" value={localConfig.capitalLossLimit}
+              onChange={(v) => set((c) => ({ ...c, capitalLossLimit: v }))} />
           </Section>
 
           <Section title="Credits & AMT">
@@ -110,10 +120,16 @@ export default function ConfigPage({ config, onSave, onReset }: Props) {
               onChange={(v) => set((c) => ({ ...c, amt: { ...c.amt, exemption: v } }))} />
             <DollarField label="AMT Phaseout Start" value={localConfig.amt.phaseoutStart}
               onChange={(v) => set((c) => ({ ...c, amt: { ...c.amt, phaseoutStart: v } }))} />
+            <PctField label="AMT Phaseout Rate" value={localConfig.amt.phaseoutRate}
+              onChange={(v) => set((c) => ({ ...c, amt: { ...c.amt, phaseoutRate: v } }))} />
+            <DollarField label="AMT 28% Threshold" value={localConfig.amt.rate26threshold}
+              onChange={(v) => set((c) => ({ ...c, amt: { ...c.amt, rate26threshold: v } }))} />
             <DollarField label="AOTC Max" value={localConfig.education.aotcMax}
               onChange={(v) => set((c) => ({ ...c, education: { ...c.education, aotcMax: v } }))} />
             <DollarField label="AOTC Phaseout Start" value={localConfig.education.aotcPhaseoutStart}
               onChange={(v) => set((c) => ({ ...c, education: { ...c.education, aotcPhaseoutStart: v } }))} />
+            <DollarField label="AOTC Phaseout End" value={localConfig.education.aotcPhaseoutEnd}
+              onChange={(v) => set((c) => ({ ...c, education: { ...c.education, aotcPhaseoutEnd: v } }))} />
           </Section>
 
           <Section title="Medicare, SS & NIIT">
@@ -223,6 +239,15 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
       <label className="text-sm text-gray-600 whitespace-nowrap">{label}</label>
       <input type="number" value={value} onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         className="w-32 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums" />
+    </div>
+  );
+}
+
+function CheckField({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <label className="text-sm text-gray-600 whitespace-nowrap">{label}</label>
+      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4" />
     </div>
   );
 }

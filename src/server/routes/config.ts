@@ -1,7 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import * as storage from '../storage.js';
-import { config2025 } from '../../shared/tax-config-2025.js';
-import { config2026 } from '../../shared/tax-config-2026.js';
+import { defaultConfigForYear } from '../../shared/tax-configs.js';
 
 const router = Router();
 
@@ -36,7 +35,7 @@ router.patch('/:year/config', (req: Request, res: Response) => {
 // POST /api/years/:year/config/reset
 router.post('/:year/config/reset', (req: Request, res: Response) => {
   const year = parseInt(req.params.year, 10);
-  const defaults = year === 2026 ? { ...config2026 } : { ...config2025, year };
+  const defaults = defaultConfigForYear(year);
   storage.writeYearConfig(year, defaults);
   res.json(defaults);
 });

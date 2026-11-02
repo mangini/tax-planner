@@ -20,7 +20,7 @@ W-2, 1099-INT, 1099-DIV, 1099-B, 1099-G, 1099-R, 1098, Schedule K-1, foreign ren
 
 ```
 src/
-  shared/          Types, schemas (zod), tax configs (2025/2026)
+  shared/          Types, schemas (zod), tax configs (2025/2026/2027)
   server/          Express API + tax engine
     engine/        Computation modules (federal, state, AMT, NIIT, etc.)
     routes/        REST endpoints

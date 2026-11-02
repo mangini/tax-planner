@@ -3,7 +3,7 @@
 ## Quick Reference
 
 - **Type check**: `npx tsc --noEmit`
-- **Tests**: `npx vitest run` (39 tests, 8 files, all server-side)
+- **Tests**: `npx vitest run` (all server-side)
 - **Dev**: `npm run dev` (Express on :3456, Vite on :5173)
 - **Data dir**: `data/` (gitignored, JSON files)
 
@@ -14,7 +14,8 @@ src/
   shared/           Shared between client and server
     types.ts        All interfaces: form data, computation results, TaxAmount
     schemas.ts      Zod schemas matching each type (validation + defaults)
-    tax-config-2025.ts / tax-config-2026.ts   Year-specific brackets/thresholds
+    tax-config-{2025,2026,2027}.ts   Year-specific brackets/thresholds (MFJ only)
+    tax-configs.ts  defaultConfigForYear() — picks the config for a year (nearest year as fallback)
   server/           Express API (runs with tsx)
     index.ts        Express app, routes, port 3456
     storage.ts      JSON file persistence (read/write/clone years)
@@ -111,4 +112,6 @@ Tailwind CSS. Cards use `rounded-lg border-gray-100` with `bg-gray-50` header st
 
 **Add a new tax computation**: Create module in `engine/`, export pure function, call from `engine/index.ts`, add tests in `__tests__/engine/`.
 
-**Modify tax brackets/thresholds**: Edit `tax-config-{year}.ts` or use the Config page in the UI.
+**Modify tax brackets/thresholds**: Edit `tax-config-{year}.ts` or use the Config page in the UI. Note each year's config is persisted to `data/{year}-config.json` on first read, so changing defaults does not affect existing years until you click "Reset to Defaults" on the Config page.
+
+**Add a new tax year config**: Create `tax-config-{year}.ts` and register it in `tax-configs.ts`.

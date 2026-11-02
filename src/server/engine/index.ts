@@ -13,7 +13,7 @@ import { computeNIIT } from './niit.js';
 import { computeAdditionalMedicareTax } from './medicare.js';
 import { computeDeductions } from './deductions.js';
 import { computeHSADeduction } from './hsa.js';
-import { computeChildTaxCredit, computeForeignTaxCredit } from './credits.js';
+import { computeChildTaxCredit, computeForeignTaxCredit, computeAOTC } from './credits.js';
 import { computeColoradoTax } from './colorado.js';
 import { computeFBAR } from './fbar.js';
 
@@ -67,7 +67,11 @@ function collectEstimates(data: TaxYearData): EstimateWarning[] {
 export function computeTax(data: TaxYearData, config: YearConfig): ComputationResult {
   // 1. Aggregate income by category
   let wageIncome = 0;
-  for (const w of data.w2) wageIncome += amountValue(w.wages);
+  let medicareWages = 0;
+  for (const w of data.w2) {
+    wageIncome += amountValue(w.wages);
+    medicareWages += amountValue(w.medicareWages);
+  }
 
   let interestIncome = 0;
   for (const f of data.form1099INT) interestIncome += amountValue(f.interest);
@@ -134,13 +138,20 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
     retirementIncome += amountValue(r.taxableAmount);
   }
 
+  // Net capital gain/loss (Schedule D). A net loss offsets ordinary income only up to the limit;
+  // the rest carries forward (carryforwards are not tracked).
+  const netCapitalGainOrLoss = shortTermCapitalGain + longTermCapitalGain;
+  const capitalGainIncome =
+    netCapitalGainOrLoss >= 0
+      ? netCapitalGainOrLoss
+      : -Math.min(config.capitalLossLimit, -netCapitalGainOrLoss);
+
   // Total gross income
   const grossIncome =
     wageIncome +
     interestIncome +
     ordinaryDividendIncome +
-    shortTermCapitalGain +
-    longTermCapitalGain +
+    capitalGainIncome +
     k1OrdinaryIncome +
     k1RentalIncome +
     foreignRentalIncome +
@@ -159,9 +170,10 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
   // 5. Taxable income
   const taxableIncome = Math.max(0, agi - deductions.deductionUsed);
 
-  // 6. Split income for tax computation
-  const netLTCG = Math.max(0, longTermCapitalGain);
-  const preferentialIncome = qualifiedDividendIncome + netLTCG;
+  // 6. Split income for tax computation.
+  // Net capital gain = net LTCG reduced by any net STCL; preferential income can't exceed taxable income.
+  const netLTCG = Math.max(0, Math.min(longTermCapitalGain, netCapitalGainOrLoss));
+  const preferentialIncome = Math.min(taxableIncome, qualifiedDividendIncome + netLTCG);
   const ordinaryTaxableIncome = Math.max(0, taxableIncome - preferentialIncome);
 
   // 7. Ordinary income tax
@@ -172,8 +184,8 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
 
   // 8. Capital gains tax (stacked on top of ordinary income)
   const capitalGainsTax = computeCapitalGainsTax(
-    qualifiedDividendIncome,
-    netLTCG,
+    preferentialIncome,
+    0,
     ordinaryTaxableIncome,
     config.ltcgBrackets
   );
@@ -183,10 +195,17 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
 
   // 9. AMT
   const amt = computeAMT(
-    taxableIncome,
-    deductions.saltCapped,
-    deductions.usingItemized,
-    regularTax,
+    {
+      taxableIncome,
+      usingItemized: deductions.usingItemized,
+      saltDeducted: deductions.saltCapped,
+      itemizedReduction: deductions.itemizedReduction ?? 0,
+      standardDeduction: deductions.standardDeduction,
+      stateRefundIncome,
+      preferentialIncome,
+      ordinaryTaxableIncome,
+      regularTax,
+    },
     config
   );
 
@@ -194,15 +213,14 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
   const investmentIncome =
     interestIncome +
     ordinaryDividendIncome +
-    shortTermCapitalGain +
-    longTermCapitalGain +
+    capitalGainIncome +
     k1RentalIncome +
     foreignRentalIncome;
 
   const niit = computeNIIT(investmentIncome, agi, config);
 
   // 11. Additional Medicare
-  const additionalMedicareTax = computeAdditionalMedicareTax(wageIncome, config);
+  const additionalMedicareTax = computeAdditionalMedicareTax(medicareWages, config);
 
   // Total tax before credits
   const totalTaxBeforeCredits = regularTax + amt + niit + additionalMedicareTax;
@@ -250,14 +268,23 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
       amountValue(data.foreignBankIncome.capitalGains);
   }
 
+  // FTC offsets regular income tax + AMT only (not NIIT / Additional Medicare)
   const foreignTaxCredit = computeForeignTaxCredit(
     totalForeignTaxPaid,
     foreignSourceIncome,
-    grossIncome,
-    totalTaxBeforeCredits
+    taxableIncome,
+    regularTax + amt
   );
 
-  const totalCredits = childTaxCredit + foreignTaxCredit;
+  // Education credit (AOTC, one student)
+  let educationCredit = 0;
+  const edu = data.educationCredits;
+  if (edu?.enabled) {
+    const qualified = Math.max(0, amountValue(edu.tuitionPaid) - amountValue(edu.scholarships));
+    educationCredit = computeAOTC(qualified, agi, config);
+  }
+
+  const totalCredits = childTaxCredit + foreignTaxCredit + educationCredit;
 
   // Total federal tax
   const totalTax = Math.max(0, totalTaxBeforeCredits - totalCredits);
@@ -266,6 +293,27 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
   let totalWithholding = 0;
   for (const w of data.w2) totalWithholding += amountValue(w.federalWithheld);
   for (const r of data.form1099R) totalWithholding += amountValue(r.federalWithheld);
+
+  // Additional Medicare Tax withheld by employers (box 6 above 1.45% of box 5) is credited on Form 8959
+  let additionalMedicareWithheld = 0;
+  for (const w of data.w2) {
+    const regular = amountValue(w.medicareWages) * config.socialSecurity.medicareRate;
+    additionalMedicareWithheld += Math.max(0, amountValue(w.medicareWithheld) - regular);
+  }
+  additionalMedicareWithheld = Math.round(additionalMedicareWithheld * 100) / 100;
+
+  // Excess Social Security withheld when one person has multiple employers (Schedule 3 line 11)
+  let excessSocialSecurityCredit = 0;
+  const maxSS = config.socialSecurity.wageBase * config.socialSecurity.employeeRate;
+  for (const owner of ['self', 'spouse'] as const) {
+    const ownerW2s = data.w2.filter((w) => w.owner === owner);
+    if (ownerW2s.length < 2) continue;
+    const withheld = ownerW2s.reduce((sum, w) => sum + amountValue(w.socialSecurityWithheld), 0);
+    excessSocialSecurityCredit += Math.max(0, withheld - maxSS);
+  }
+  excessSocialSecurityCredit = Math.round(excessSocialSecurityCredit * 100) / 100;
+
+  totalWithholding += additionalMedicareWithheld + excessSocialSecurityCredit;
 
   // Estimated payments
   let totalEstimatedPayments = 0;
@@ -306,9 +354,12 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
     totalTaxBeforeCredits,
     childTaxCredit,
     foreignTaxCredit,
+    educationCredit,
     totalCredits,
     totalTax,
     totalWithholding,
+    additionalMedicareWithheld,
+    excessSocialSecurityCredit,
     totalEstimatedPayments,
     balanceDue,
     effectiveRate: Math.round(effectiveRate * 10000) / 10000,
@@ -316,7 +367,20 @@ export function computeTax(data: TaxYearData, config: YearConfig): ComputationRe
   };
 
   // Colorado
-  const colorado = computeColoradoTax(taxableIncome, data, config);
+  // State income tax addback: the state-income-tax share of deducted SALT,
+  // limited to the amount by which itemized deductions exceed the standard deduction.
+  let stateIncomeTaxAddback = 0;
+  if (deductions.usingItemized && deductions.saltTotal > 0) {
+    const stateShare =
+      deductions.saltCapped * ((deductions.stateIncomeTax ?? 0) / deductions.saltTotal);
+    stateIncomeTaxAddback = Math.round(
+      Math.max(0, Math.min(stateShare, deductions.totalItemized - deductions.standardDeduction)) * 100
+    ) / 100;
+  }
+  const colorado = computeColoradoTax(taxableIncome, data, config, {
+    stateIncomeTaxAddback,
+    stateRefundSubtraction: stateRefundIncome,
+  });
 
   // FBAR
   const fbar = computeFBAR(data, config);

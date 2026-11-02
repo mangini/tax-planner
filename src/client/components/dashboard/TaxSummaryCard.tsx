@@ -38,9 +38,12 @@ export default function TaxSummaryCard({ federal, colorado }: Props) {
             <hr className="border-gray-100" />
             {federal.childTaxCredit > 0 && <Row label="Child Tax Credit" value={`-${fmt(federal.childTaxCredit)}`} className="text-green-600" />}
             {federal.foreignTaxCredit > 0 && <Row label="Foreign Tax Credit" value={`-${fmt(federal.foreignTaxCredit)}`} className="text-green-600" />}
+            {(federal.educationCredit ?? 0) > 0 && <Row label="Education Credit" value={`-${fmt(federal.educationCredit ?? 0)}`} className="text-green-600" />}
             <hr className="border-gray-100" />
             <Row label="Total Federal Tax" value={fmt(federal.totalTax)} bold />
             <Row label="Withholding" value={fmt(federal.totalWithholding)} />
+            {(federal.additionalMedicareWithheld ?? 0) > 0 && <Row label="incl. Addl Medicare withheld" value={fmt(federal.additionalMedicareWithheld ?? 0)} className="text-gray-400" />}
+            {(federal.excessSocialSecurityCredit ?? 0) > 0 && <Row label="incl. Excess SS credit" value={fmt(federal.excessSocialSecurityCredit ?? 0)} className="text-gray-400" />}
             {federal.totalEstimatedPayments > 0 && <Row label="Est. Payments" value={fmt(federal.totalEstimatedPayments)} />}
             <Row
               label="Balance Due"

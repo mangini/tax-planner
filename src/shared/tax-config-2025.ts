@@ -1,5 +1,8 @@
 import type { YearConfig } from './types.js';
 
+// 2025 final values — MFJ.
+// Sources: Rev. Proc. 2024-40, as modified by the One Big Beautiful Bill Act (OBBBA, P.L. 119-21)
+// for the standard deduction, child tax credit and SALT cap.
 export const config2025: YearConfig = {
   year: 2025,
   federalBrackets: [
@@ -16,20 +19,22 @@ export const config2025: YearConfig = {
     { min: 96700, max: 600050, rate: 0.15 },
     { min: 600050, max: null, rate: 0.20 },
   ],
-  standardDeduction: 30000,
+  standardDeduction: 31500, // OBBBA raised from $30,000
+  capitalLossLimit: 3000,
   amt: {
-    exemption: 133300,
-    phaseoutStart: 1218700,
-    rate26threshold: 248300,
+    exemption: 137000,
+    phaseoutStart: 1252700,
+    phaseoutRate: 0.25,
+    rate26threshold: 239100,
     rate26: 0.26,
     rate28: 0.28,
   },
   niit: {
-    threshold: 250000,
+    threshold: 250000, // statutory, not indexed
     rate: 0.038,
   },
   additionalMedicare: {
-    threshold: 250000,
+    threshold: 250000, // statutory, not indexed
     rate: 0.009,
   },
   socialSecurity: {
@@ -38,32 +43,38 @@ export const config2025: YearConfig = {
     medicareRate: 0.0145,
   },
   childTaxCredit: {
-    amount: 2000,
+    amount: 2200, // OBBBA
     phaseoutStart: 400000,
-    phaseoutRate: 0.05,
+    phaseoutRate: 0.05, // $50 per $1,000 (or fraction) over
   },
   salt: {
-    cap: 40000,           // OBBBA raised for MFJ
-    phaseoutStart: 1000000, // Phaseout for high earners
-    phaseoutRate: 0.01,
-    floor: 10000,          // Minimum SALT cap
+    cap: 40000,            // OBBBA
+    phaseoutStart: 500000, // MAGI threshold (same for single and MFJ)
+    phaseoutRate: 0.30,    // cap reduced by 30% of MAGI over threshold
+    floor: 10000,
   },
   hsa: {
     selfOnlyLimit: 4300,
-    familyLimit: 8750,
+    familyLimit: 8550,
     catchUpAge: 55,
     catchUpAmount: 1000,
   },
   charitable: {
     cashAGILimit: 0.60,
     propertyAGILimit: 0.30,
+    agiFloorPct: 0,
+    nonItemizerCashMax: 0,
+  },
+  itemized: {
+    topBracketReductionRate: 0,
+    mortgageInsuranceDeductible: false,
   },
   colorado: {
-    flatRate: 0.044,
+    flatRate: 0.044, // no TABOR temporary reduction triggered for 2025
   },
   education: {
     aotcMax: 2500,
-    aotcPhaseoutStart: 160000,
+    aotcPhaseoutStart: 160000, // statutory, not indexed
     aotcPhaseoutEnd: 180000,
   },
   fbar: {
